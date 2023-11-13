@@ -523,7 +523,7 @@
         \vspace{10cm}                               % 标题和图片的间距
         \includegraphics[width=0.6\textwidth]{#2}   % 插入图片
         \vspace*{\fill}                             %
-    \end{titlepage}                                 %
+    \end{titlepage} \clearpage                                 %
 }
 %%-----------------------------------------------------------------------------%
 %% 封皮页
