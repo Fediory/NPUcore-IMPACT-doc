@@ -10,7 +10,10 @@
 ## 使用说明
 
 1. 克隆这个项目到本地
-2. 安装不低于2021版本的TexLive，参考[TexLive 2021 安装指南 - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/362275032)
+2. 安装不低于2021版本的TexLive，参考[TexLive 2021 安装指南 - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/362275032)，如果是windows系统并且使用vscode做编写，可以参考使用本README最后的vscode settings分享。
+3. 在chapters目录下找到自己负责的章节文件，章节文件名加上路径格式为“chapters/01/01.tex”，对应代表第一章第一节。
+4. 编写过程中需要插入图片，存放在figures目录下。图片命名格式为“01-01-figurename.png”，对应代表第一章第一节所用到的图片。
+5. 推荐另行创建自己的仓库用于组内共享编写，版本迭代较为稳定之后推到此仓库中。
 
 ## 常见问题 Q&A
 
@@ -45,3 +48,158 @@
 * **格式符说明**
   * 字体大小（size）的控制命令统一前缀为 `s`
   * 字体格式（font）的控制命令统一前缀为 `f`
+
+* **常用latex语法汇总**
+  * 加粗：`\textbf{文本}`
+  * 插入图片（参考chapters\03\03.tex）
+  ```latex
+  \begin{figure}[htb]
+    \centering
+    \includegraphics[width=\textwidth]{figures/03-03-syscall和SBI区别.png}
+    \caption{
+        syscall和SBI区别
+    }
+    \label{fig:syscall和SBI区别}
+  \end{figure}
+  ```
+  使用`\autoref{fig:syscall和SBI区别}`引用图片。
+  不明白的参数上网查询相关资料学习。
+  * 插入代码（参考chapters\03\01.tex）
+  ```latex
+  \begin{lstlisting}[language={Rust}, label={code:forktest},
+    caption={forktest.rs}]
+  pub fn main() -> i32 {
+      0
+  }
+  \end{lstlisting}
+  ```
+
+* **vscode settings分享**
+
+仅仅适用于windows系统，并且需要修改`path/to`的内容为自己电脑上的程序路径。
+```json
+{
+    // ======================== LaTeX 设置 BEGIN  ========================
+    // bibtex 格式
+    "latex-workshop.bibtex-format.tab": "tab",
+
+    // 自动编译，全部关闭，当且仅当你认为有需要的时候才会去做编译
+    "latex-workshop.latex.autoBuild.run": "never",
+    "latex-workshop.latex.autoBuild.cleanAndRetry.enabled": false,
+
+    // 设置 latex-workshop 的 PDF　预览程序，external　指的是外部程序
+    "latex-workshop.view.pdf.viewer": "external",
+    "latex-workshop.view.pdf.ref.viewer": "external",
+    "latex-workshop.view.pdf.external.viewer.command": "path/to/SumatraPDF.exe",
+    "latex-workshop.view.pdf.external.viewer.args": [
+        "%PDF%"
+    ],
+
+    // 配置正向、反向搜索：.tex -> .pdf
+    "latex-workshop.view.pdf.external.synctex.command": "path/to/SumatraPDF.exe",
+    "latex-workshop.view.pdf.external.synctex.args": [
+        // 正向搜索
+        "-forward-search",
+        "%TEX%",
+        "%LINE%",
+        "-reuse-instance",
+        // 反向搜索
+        "-inverse-search",
+        "\"path/to/Microsoft VS Code/Code.exe\" \"path/to/Microsoft VS Code/resources/app/out/cli.js\" -gr %f:%l",
+        "%PDF%"
+    ],
+
+    // 这是一些独立的编译选项，可以作为工具被编译方案调用
+    "latex-workshop.latex.tools": [
+        {
+            // Windows 原生安装 TeX Live 2021 的编译选项
+            "name": "Windows XeLaTeX",
+            "command": "xelatex",
+            "args": [
+                "-synctex=1",
+                "-interaction=nonstopmode",
+                "-file-line-error",
+                "-pdf",
+                "%DOCFILE%"
+            ]
+        },
+        {
+            // Windows Biber 编译
+            "name": "Windows Biber",
+            "command": "biber",
+            "args": [
+                "%DOCFILE%"
+            ]
+        },
+        {
+            // Windows Biber 编译
+            "name": "删除中间文件",
+            "command": "del",
+            "args": [
+                "/s",
+                "/f",
+                "*.log",
+                "*.aux",
+                "*.nlo",
+                "*.gz",
+                "*.thm",
+                "*.toc",
+                "*.lof",
+                "*.lot",
+                "*.bbl",
+                "*.blg"
+            ]
+        }
+    ],
+
+    // 这是一些编译方案，会出现在 GUI 菜单里
+    "latex-workshop.latex.recipes": [
+        {
+            // 1.1 Windows 编译简单的小文档，这个选项不太常用，因为绝大多数文章都需要有参考文献索引
+            "name": "Windows XeLaTeX 简单编译",
+            "tools": [
+                "Windows XeLaTeX",
+                "Windows XeLaTeX",
+                "删除中间文件"
+            ]
+        },
+        {
+            // 1.2 Windows 编译带有索引的论文，需要进行四次编译；-> 符号只是一种标记而已，没有程序上的意义
+            "name": "Windows xe->bib->xe->xe 复杂编译",
+            "tools": [
+                "Windows XeLaTeX",
+                "Windows Biber",
+                "Windows XeLaTeX",
+                "Windows XeLaTeX"
+            ]
+        }
+    ],
+
+    // 清空中间文件
+    "latex-workshop.latex.clean.fileTypes": [
+        "*.aux",
+        "*.bbl",
+        "*.blg",
+        "*.idx",
+        "*.ind",
+        "*.lof",
+        "*.lot",
+        "*.out",
+        "*.toc",
+        "*.acn",
+        "*.acr",
+        "*.alg",
+        "*.glg",
+        "*.glo",
+        "*.gls",
+        "*.ist",
+        "*.fls",
+        "*.log",
+        "*.fdb_latexmk",
+        "*.bcf",
+        "*.run.xml",
+        "*.synctex.gz"
+    ]
+    // ======================== LaTeX 设置 END ========================
+}
+```
