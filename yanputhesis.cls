@@ -506,6 +506,9 @@
     \renewcommand{\nwpu@chs@funding}{#1}                    %
     \renewcommand{\nwpu@eng@funding}{#2}                    %
 }                                                           %
+\newcommand{\header}[1]{                                    % 设置页眉
+    \renewcommand{\nwpu@chs@header}{#1}                     %
+}                                                           %
 \newcommand{\studentnumber}[1]{\renewcommand{\nwpu@uid}{#1}}% 设置学号
 %%=============================================================================%
 %%=============================================================================%
