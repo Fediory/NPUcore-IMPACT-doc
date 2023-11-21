@@ -73,6 +73,14 @@
   }
   \end{lstlisting}
   ```
+  * 行内代码
+  ```latex
+  \lstinline`行内代码`
+  ```
+* **latex报错解决**
+  * 报错`Missing $ inserted`
+  可能的原因：文中出现下划线`"_"`，被latex识别为特殊字符。
+  解决方法：在下划线`"_"`前加上斜杠`"\"`，即改为`"\_"`。
 
 * **vscode settings分享**
 
@@ -158,6 +166,7 @@
             // 1.1 Windows 编译简单的小文档，这个选项不太常用，因为绝大多数文章都需要有参考文献索引
             "name": "Windows XeLaTeX 简单编译",
             "tools": [
+                "删除中间文件",
                 "Windows XeLaTeX",
                 "Windows XeLaTeX",
                 "删除中间文件"
