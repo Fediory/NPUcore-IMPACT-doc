@@ -1,0 +1,23 @@
+\section{用户地址空间}
+\begin{figure}[htb]
+    \centering
+    \includegraphics[width=\textwidth]{figures/figure1.pdf}
+    \caption{
+        用户虚拟地址空间示意
+    }
+    \label{fig:user virtual process}
+\end{figure}
+每一个进程都有一个独立的页表，当npucore实现进程切换的时候，对应的页表也会切换。
+
+当一个用户进程通过系统调用向操作系统请求更多的用户空间时，npucore首先在os/src/frame_allocator.rs中的StackFrameAllocator的基于栈的数据结构实现空闲物理页的分配，然后将物理页的映射加入到用户的页表当中。
+npucore将设置PTEflags::R，PTEflags::W，PTEflags::U，PTEflags::X以及PTEflags::V标志位到对应的页表项目，使得用户可以对分配的页面进行读写操作。
+大多数的用户进程并不能完全利用所有的虚拟空间，对于没有用到的空间，它对应的页表项PTEflags::V标志位始终为0。
+
+页表的设计有很多的好处。首先，首先不同的进程使用不同的页表，相同的虚拟地址映射到不同的物理地址，因此每一个进程可以拥有自己独立的内存空间。其次，用户的虚拟地址是连续的，对应的物理地址不一定是连续的，这样可以有效的避免内存碎片。最后，内核将所有的用户的跳板代码都映射到了同一段虚地址，可以有效的实现上下文切换。
+
+如图\ref{fig:user virtual process}所示，用户的虚拟地址空间被分为了三个部分，分别是用户代码段，用户数据段以及用户堆栈段。用户代码段用于存放用户的代码，用户数据段用于存放用户的数据，用户堆栈段用于存放用户的堆栈。
+其中，用户栈的初始内容如图中所示，由execve函数完成初始化，其中包含了用户的命令行参数和返回地址，紧接着就是main函数使用的栈空间。
+
+npucore实现了execve来将elf文件加载到内存的进程地址空间中，实现了sbrk来动态的分配用户空间，实现了mmap来将文件映射到用户空间，实现了munmap来取消文件的映射。
+
+\subsection{}
