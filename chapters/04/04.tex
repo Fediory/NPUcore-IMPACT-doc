@@ -20,4 +20,44 @@ npucore将设置PTEflags::R，PTEflags::W，PTEflags::U，PTEflags::X以及PTEfl
 
 npucore实现了execve来将elf文件加载到内存的进程地址空间中，实现了sbrk来动态的分配用户空间，实现了mmap来将文件映射到用户空间，实现了munmap来取消文件的映射。
 
-\subsection{}
+\subsection{sbrk系统调用}
+sbrk系统调用是早期的Unix系统中的一个系统调用，用于动态的分配用户空间。sbrk系统调用的原型如下：
+\begin{lstlisting}[language=c]
+    void *sbrk(intptr_t increment);
+\end{lstlisting}
+sbrk系统调用将堆的大小增加increment字节，并返回堆的起始地址。
+如果increment为负数，则堆的大小减少increment字节。如果堆的大小超过了进程的地址空间，则sbrk系统调用返回-1，并设置errno为ENOMEM。
+sbrk系统调用可以为一个进程扩大或者缩小堆的大小，主要的实现是由os/src/memory_set.rs中的sbrk函数完成。
+sbrk函数调用Memoryset::mmap或者Memoryset::munmap来实现堆的扩大或者缩小。
+mmap函数不仅用于sbrk系统调用，还用于mmap系统调用，用于将文件映射到用户空间和开辟匿名内存映射。
+\begin{lstlisting}[language=rust]
+    pub fn sbrk(&mut self, heap_pt: usize, heap_bottom: usize, increment: isize) -> usize {
+        let old_pt: usize = heap_pt;
+        let new_pt: usize = old_pt + increment as usize;
+        // 判断扩大堆还是缩小堆
+        if increment > 0 {
+            let limit = heap_bottom + USER_HEAP_SIZE;
+            if new_pt > limit {
+                return old_pt;
+            } else {
+                self.mmap(
+                    old_pt,
+                    increment as usize,
+                    MapPermission::R | MapPermission::W | MapPermission::U,
+                    MapFlags::MAP_ANONYMOUS | MapFlags::MAP_FIXED | MapFlags::MAP_PRIVATE,
+                    1usize.wrapping_neg(),
+                    0,
+                );
+                trace!("[sbrk] heap area expanded to {:X}", new_pt);
+            }
+        } else if increment < 0 {
+            // 如果缩小后的堆地址小于堆底地址，则不进行缩小
+            if new_pt <= heap_bottom {
+                return old_pt;
+            } else {
+                self.munmap(old_pt, increment as usize).unwrap();
+            }
+        }
+        new_pt
+    }
+\end{lstlisting}
