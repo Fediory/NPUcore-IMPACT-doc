@@ -1,12 +1,12 @@
 \section{用户地址空间}
-\begin{figure}[htb]
-    \centering
-    \includegraphics[width=\textwidth]{figures/figure1.pdf}
-    \caption{
-        用户虚拟地址空间示意
-    }
-    \label{fig:user virtual process}
-\end{figure}
+% \begin{figure}[htb]
+%     \centering
+%     \includegraphics[width=\textwidth]{figures/figure1.pdf}
+%     \caption{
+%         用户虚拟地址空间示意
+%     }
+%     \label{fig:user virtual process}
+% \end{figure}
 每一个进程都有一个独立的页表，当npucore实现进程切换的时候，对应的页表也会切换。
 
 当一个用户进程通过系统调用向操作系统请求更多的用户空间时，npucore首先在os/src/frame_allocator.rs中的StackFrameAllocator的基于栈的数据结构实现空闲物理页的分配，然后将物理页的映射加入到用户的页表当中。
