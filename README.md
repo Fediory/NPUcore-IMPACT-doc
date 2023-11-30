@@ -46,12 +46,14 @@
 ## 其他注意事项
 
 * **格式符说明**
+
   * 字体大小（size）的控制命令统一前缀为 `s`
   * 字体格式（font）的控制命令统一前缀为 `f`
-
 * **常用latex语法汇总**
+
   * 加粗：`\textbf{文本}`
   * 插入图片（参考chapters\03\03.tex）
+
   ```latex
   \begin{figure}[htb]
     \centering
@@ -62,9 +64,12 @@
     \label{fig:syscall和SBI区别}
   \end{figure}
   ```
-  使用`\autoref{fig:syscall和SBI区别}`引用图片。
+
+  使用 `\autoref{fig:syscall和SBI区别}`引用图片。
   不明白的参数上网查询相关资料学习。
+
   * 插入代码（参考chapters\03\01.tex）
+
   ```latex
   \begin{lstlisting}[language={Rust}, label={code:forktest},
     caption={forktest.rs}]
@@ -73,18 +78,25 @@
   }
   \end{lstlisting}
   ```
+
   * 行内代码
+
   ```latex
   \lstinline`行内代码`
   ```
 * **latex报错解决**
-  * 报错`Missing $ inserted`
-  可能的原因：文中出现下划线`"_"`，被latex识别为特殊字符。
-  解决方法：在下划线`"_"`前加上斜杠`"\"`，即改为`"\_"`。
 
+  * 报错 `Missing $ inserted`
+    可能的原因：文中出现下划线 `"_"`，被latex识别为特殊字符。
+    解决方法：在下划线 `"_"`前加上斜杠 `"\"`，即改为 `"\_"`。
+    注意：在label标签中的下划线前不需要添加斜杠，否则编译不通过，举例如下：
+    ```latex
+    \begin{lstlisting}[language={Rust}, label={code:map_one}, caption={map\_one}]
+    ```
 * **vscode settings分享**
 
-仅仅适用于windows系统，并且需要修改`path/to`的内容为自己电脑上的程序路径。
+仅仅适用于windows系统，并且需要修改 `path/to`的内容为自己电脑上的程序路径。
+
 ```json
 {
     // ======================== LaTeX 设置 BEGIN  ========================

@@ -383,7 +383,7 @@ RAII（Resource Acquisition Is Initialization），也称为“资源获取就�
 
 页表和空的areas向量，具体实现如下：
 
-\begin{lstlisting}[language={Rust}, label={code:new\_bare}, caption={new\_bare}]
+\begin{lstlisting}[language={Rust}, label={code:new_bare}, caption={new\_bare}]
 	impl MemorySet {
 		/// Create a new struct with no information at all.
 		pub fn new_bare() -> Self {
@@ -410,7 +410,7 @@ RAII（Resource Acquisition Is Initialization），也称为“资源获取就�
 
 其余区域的映射方式大致相同，NPUcore定义了一个anonymous\_identical\_map宏（匿名恒等映射），来减少重复代码。具体代码如下：
 
-\begin{lstlisting}[language={Rust}, label={code:anonymous\_identical\_map}, caption={anonymous\_identical\_map}]
+\begin{lstlisting}[language={Rust}, label={code:anonymous_identical_map}, caption={anonymous\_identical\_map}]
 	macro_rules! anonymous_identical_map {
 		($begin:expr,$end:expr,$permission:expr) => {
 			memory_set
@@ -462,7 +462,7 @@ RAII（Resource Acquisition Is Initialization），也称为“资源获取就�
 方法的功能是，将尚未映射的MapArea push到当前MemorySet中，并为映射分配所需的内存，如果没有数据，那么直接遍历map\_area.inner.vpn\_range（虚拟页面页号），使用MapArea的map\_one方法来映射每个页面。如果有数据的话，在上述操作之外还需添加将数据拷贝映射后的物理页面的操作。
 下面看一下map\_one方法的实现：
 
-\begin{lstlisting}[language={Rust}, label={code:map\_one}, caption={map\_one}]
+\begin{lstlisting}[language={Rust}, label={code:map_one}, caption={map\_one}]
 	pub fn map_one(
 	&mut self,
 	page_table: &mut PageTable,
