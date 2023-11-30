@@ -1,12 +1,12 @@
 \section{用户地址空间}
-% \begin{figure}[htb]
-%     \centering
-%     \includegraphics[width=\textwidth]{figures/figure1.pdf}
-%     \caption{
-%         用户虚拟地址空间示意
-%     }
-%     \label{fig:user virtual process}
-% \end{figure}
+\begin{figure}[htb]
+    \centering
+    \includegraphics[width=\textwidth]{figures/04-04-用户地址空间示意图.png}
+    \caption{
+        用户虚拟地址空间示意
+    }
+    \label{fig:user virtual process}
+\end{figure}
 每一个进程都有一个独立的页表，当npucore实现进程切换的时候，对应的页表也会切换。
 
 当一个用户进程通过系统调用向操作系统请求更多的用户空间时，npucore首先在os/src/frame_allocator.rs中的StackFrameAllocator的基于栈的数据结构实现空闲物理页的分配，然后将物理页的映射加入到用户的页表当中。
@@ -17,8 +17,18 @@ npucore将设置PTEflags::R，PTEflags::W，PTEflags::U，PTEflags::X以及PTEfl
 
 如图\ref{fig:user virtual process}所示，用户的虚拟地址空间被分为了三个部分，分别是用户代码段，用户数据段以及用户堆栈段。用户代码段用于存放用户的代码，用户数据段用于存放用户的数据，用户堆栈段用于存放用户的堆栈。
 其中，用户栈的初始内容如图中所示，由execve函数完成初始化，其中包含了用户的命令行参数和返回地址，紧接着就是main函数使用的栈空间。
+堆是动态内存分配的区域，用于存储在运行时分配的数据。在npucore中，堆的起始地址通常在数据段结束后，并根据需要进行扩展。通过系统调用（如mmap和sbrk），用户程序可以动态地管理堆内存。
+栈是用于存储函数调用和局部变量的区域。在npucore中，栈从高地址向低地址生长，通常位于用户地址空间的顶部。栈的大小可以通过操作系统配置或在运行时动态调整。。
+
+代码段是存储进程执行指令的区域。在npucore中，代码段通常从虚拟地址0开始，并包含可执行程序的指令。这个区域对应于用户程序的文本部分。
+数据段包含了全局变量和静态变量等数据。npucore将数据段安排在代码段之后，从一个虚拟地址开始，并在运行时动态地分配和使用。
+
+用户在代码段执行用户程序，将elf指定的数据段内容存放在相应的数据段位置。因为我们对与内核的映射是直接映射，所以操作系统对于用户的地址空间是直接可见的。
+同时，堆栈段的大小是动态变化的，当用户程序需要更多的堆栈空间时，会通过系统调用向操作系统请求更多的堆栈空间，操作系统会在用户的地址空间中分配更多的堆栈空间，并将堆栈空间映射到用户的地址空间中
 
 npucore实现了execve来将elf文件加载到内存的进程地址空间中，实现了sbrk来动态的分配用户空间，实现了mmap来将文件映射到用户空间，实现了munmap来取消文件的映射。
+execve将elf文件中程序所规定的代码和数据加载到内存中，然后操作系统需要建议对应的映射，从而实现了用户地址空间的建立。
+
 
 \subsection{sbrk系统调用}
 sbrk系统调用是早期的Unix系统中的一个系统调用，用于动态的分配用户空间。sbrk系统调用的原型如下：
@@ -61,6 +71,8 @@ mmap函数不仅用于sbrk系统调用，还用于mmap系统调用，用于将�
         new_pt
     }
 \end{lstlisting}
+sbrk的实现依赖于函数mmap的实现，将在接下来的章节介绍，mmap是比sbrk更加灵活的系统调用，能狗处理更复杂的内存分配和使用的情况。
+
 
 \subsection{mmap}
 \begin{lstlisting}[language=rust]
