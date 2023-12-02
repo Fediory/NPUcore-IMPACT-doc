@@ -36,12 +36,10 @@
   ```latex
   \begin{lstlisting}[language={Rust}, label={code:forktest},
     caption={forktest.rs}]
-  pub fn main() -> i32 {
-      0
-  }
+  
   \end{lstlisting}
   ```
-
+  
   * 行内代码
 
   ```latex
