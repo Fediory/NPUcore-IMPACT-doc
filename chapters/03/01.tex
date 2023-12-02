@@ -120,8 +120,8 @@ exec系统调用是 Unix 和 Linux 操作系统中的一种常见的系统调用
 
 以下是一个 Rust 语言编写的程序，主要目的是演示如何使用exec系统调用。
 
-\begin{lstlisting}[language={Rust}, label={code:exec},
-    caption={exec}]
+\begin{lstlisting}[language={Rust}, label={code:exec_test},
+    caption={exec_test}]
 #![no_std]
 #![no_main]
 use user_lib::{exit, exec, fork, wait, yield_};
@@ -186,3 +186,44 @@ fn main() -> i32 {
 
 
 \subsection{sbrk}
+
+sbrk函数的功能是改变进程的堆的大小，包括扩大与缩小。一个堆空间可以用堆底指针与堆顶指针来确定，
+而堆底指针一般是固定的，因此我们通过移动堆顶指针来实现堆空间大小的改变。
+如图\autoref{fig:使用sbrk四种情况}，共有四种情况：
+
+\begin{figure}[htb]
+    \centering
+    \includegraphics[width=\textwidth]{figures/03-01-使用sbrk四种情况.png}
+    \caption{
+        使用sbrk四种情况
+    }
+    \label{fig:使用sbrk四种情况}
+\end{figure}
+
+前两种情况代表堆空间的扩大，后两种情况代表堆空间的缩小。有两种可能遇到的问题：
+一是堆空间扩大时超过用户空间大小限制；二是堆空间缩小时堆顶指针小于堆底指针。
+这两种情况都是不合理的请求时，我们来编写用户态程序测试一下。
+
+\begin{lstlisting}[language={Rust}, label={code:sbrk_test},
+    caption={sbrk_test}]
+user_lib::println!("old_heap_pt:{:08x}", sbrk(0));
+user_lib::println!("increment:8192, 	new_heap_pt:{:08x}", sbrk(8192));
+user_lib::println!("increment:-4096, 	new_heap_pt:{:08x}", sbrk(-4096));
+user_lib::println!("increment:99999999, 	new_heap_pt:{:08x}", sbrk(99999999));
+user_lib::println!("increment:-8192, 	new_heap_pt:{:08x}", sbrk(-8192));
+\end{lstlisting}
+
+运行结果如\autoref{fig:使用sbrk四种情况运行截图}：
+
+\begin{figure}[htb]
+    \centering
+    \includegraphics[width=\textwidth]{figures/03-01-使用sbrk四种情况运行截图.png}
+    \caption{
+        使用sbrk四种情况运行截图
+    }
+    \label{fig:使用sbrk四种情况运行截图}
+\end{figure}
+
+进程的堆空间初始时堆顶指针为0x0f00，语句二调用了sbrk函数，为堆空间增大了8KiB空间，
+因此堆顶指针为0x0f00+0x0200=0x1100。同理，语句三缩小了堆空间，也能够正常执行。
+第三、四条语句展示了申请的堆空间过大/过小的情况，可见面对这两种错误，sbrk函数选择不改变原来的堆空间。
