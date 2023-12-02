@@ -87,6 +87,14 @@
 
 ## 其他
 
+* **双向搜索**
+  * 请先检查：
+    1. SumatraPDF安装完成
+    2. vscode双向配置相关内容设置完成（可以参考最后的vscode settings分享）
+    3. 正确编译生成pdf文件，并且存在对应的`.synctex.gz`文件
+  * 正向搜索（tex->pdf）：光标在源码中，`Ctrl + Alt + J`
+  * 反向搜索（pdf->tex）：双击文档位置，光标会自动定位到对应tex源码中
+
 * **格式符说明**
 
   * 字体大小（size）的控制命令统一前缀为 `s`
@@ -103,128 +111,123 @@
 
 ```json
 {
-    // ======================== LaTeX 设置 BEGIN  ========================
-    // bibtex 格式
-    "latex-workshop.bibtex-format.tab": "tab",
+  // ======================== LaTeX 设置 BEGIN  ========================
+  // bibtex 格式
+  "latex-workshop.bibtex-format.tab": "tab",
 
-    // 自动编译，全部关闭，当且仅当你认为有需要的时候才会去做编译
-    "latex-workshop.latex.autoBuild.run": "never",
-    "latex-workshop.latex.autoBuild.cleanAndRetry.enabled": false,
+  // 自动编译，全部关闭，当且仅当你认为有需要的时候才会去做编译
+  "latex-workshop.latex.autoBuild.run": "never",
+  "latex-workshop.latex.autoBuild.cleanAndRetry.enabled": false,
 
-    // 设置 latex-workshop 的 PDF　预览程序，external　指的是外部程序
-    "latex-workshop.view.pdf.viewer": "external",
-    "latex-workshop.view.pdf.ref.viewer": "external",
-    "latex-workshop.view.pdf.external.viewer.command": "path/to/SumatraPDF.exe",
-    "latex-workshop.view.pdf.external.viewer.args": [
-        "%PDF%"
-    ],
+  // 设置 latex-workshop 的 PDF　预览程序，external　指的是外部程序
+  "latex-workshop.view.pdf.viewer": "external",
+  "latex-workshop.view.pdf.ref.viewer": "external",
+  "latex-workshop.view.pdf.external.viewer.command": "path/to/SumatraPDF/SumatraPDF.exe",
+  "latex-workshop.view.pdf.external.viewer.args": [
+      "%PDF%"
+  ],
 
-    // 配置正向、反向搜索：.tex -> .pdf
-    "latex-workshop.view.pdf.external.synctex.command": "path/to/SumatraPDF.exe",
-    "latex-workshop.view.pdf.external.synctex.args": [
-        // 正向搜索
-        "-forward-search",
-        "%TEX%",
-        "%LINE%",
-        "-reuse-instance",
-        // 反向搜索
-        "-inverse-search",
-        "\"path/to/Microsoft VS Code/Code.exe\" \"path/to/Microsoft VS Code/resources/app/out/cli.js\" -gr %f:%l",
-        "%PDF%"
-    ],
+  // 配置正向、反向搜索：.tex -> .pdf
+  "latex-workshop.view.pdf.external.synctex.command": "path/to/SumatraPDF/SumatraPDF.exe",
+  "latex-workshop.view.pdf.external.synctex.args": [
+      "-forward-search",
+      "%TEX%",
+      "%LINE%",
+      "%PDF%",
+  ],
 
-    // 这是一些独立的编译选项，可以作为工具被编译方案调用
-    "latex-workshop.latex.tools": [
-        {
-            // Windows 原生安装 TeX Live 2021 的编译选项
-            "name": "Windows XeLaTeX",
-            "command": "xelatex",
-            "args": [
-                "-synctex=1",
-                "-interaction=nonstopmode",
-                "-file-line-error",
-                "-pdf",
-                "%DOCFILE%"
-            ]
-        },
-        {
-            // Windows Biber 编译
-            "name": "Windows Biber",
-            "command": "biber",
-            "args": [
-                "%DOCFILE%"
-            ]
-        },
-        {
-            // Windows Biber 编译
-            "name": "删除中间文件",
-            "command": "del",
-            "args": [
-                "/s",
-                "/f",
-                "*.log",
-                "*.aux",
-                "*.nlo",
-                "*.gz",
-                "*.thm",
-                "*.toc",
-                "*.lof",
-                "*.lot",
-                "*.bbl",
-                "*.blg"
-            ]
-        }
-    ],
+  // 这是一些独立的编译选项，可以作为工具被编译方案调用
+  "latex-workshop.latex.tools": [
+      {
+          // Windows 原生安装 TeX Live 2021 的编译选项
+          "name": "Windows XeLaTeX",
+          "command": "xelatex",
+          "args": [
+              "-synctex=1",
+              "-interaction=nonstopmode",
+              "-file-line-error",
+              "-pdf",
+              "%DOCFILE%"
+          ]
+      },
+      {
+          // Windows Biber 编译
+          "name": "Windows Biber",
+          "command": "biber",
+          "args": [
+              "%DOCFILE%"
+          ]
+      },
+      {
+          "name": "删除中间文件",
+          "command": "del",
+          "args": [
+              "/s",
+              "/f",
+              "*.log",
+              "*.aux",
+              "*.nlo",
+              // 删除下方的文件会导致双向搜索失效
+              // "*.gz",
+              "*.thm",
+              "*.toc",
+              "*.lof",
+              "*.lot",
+              "*.bbl",
+              "*.blg"
+          ]
+      }
+  ],
 
-    // 这是一些编译方案，会出现在 GUI 菜单里
-    "latex-workshop.latex.recipes": [
-        {
-            // 1.1 Windows 编译简单的小文档，这个选项不太常用，因为绝大多数文章都需要有参考文献索引
-            "name": "Windows XeLaTeX 简单编译",
-            "tools": [
-                "删除中间文件",
-                "Windows XeLaTeX",
-                "Windows XeLaTeX",
-                "删除中间文件"
-            ]
-        },
-        {
-            // 1.2 Windows 编译带有索引的论文，需要进行四次编译；-> 符号只是一种标记而已，没有程序上的意义
-            "name": "Windows xe->bib->xe->xe 复杂编译",
-            "tools": [
-                "Windows XeLaTeX",
-                "Windows Biber",
-                "Windows XeLaTeX",
-                "Windows XeLaTeX"
-            ]
-        }
-    ],
+  // 这是一些编译方案，会出现在 GUI 菜单里
+  "latex-workshop.latex.recipes": [
+      {
+          // 1.1 Windows 编译没有参考文献的文档
+          "name": "Windows XeLaTeX 简单编译",
+          "tools": [
+              "删除中间文件",
+              "Windows XeLaTeX",
+              "Windows XeLaTeX",
+              "删除中间文件"
+          ]
+      },
+      {
+          // 1.2 Windows 编译带有索引的论文，需要进行四次编译；-> 符号只是一种标记而已，没有程序上的意义
+          "name": "Windows xe->bib->xe->xe 复杂编译",
+          "tools": [
+              "Windows XeLaTeX",
+              "Windows Biber",
+              "Windows XeLaTeX",
+              "Windows XeLaTeX"
+          ]
+      }
+  ],
 
-    // 清空中间文件
-    "latex-workshop.latex.clean.fileTypes": [
-        "*.aux",
-        "*.bbl",
-        "*.blg",
-        "*.idx",
-        "*.ind",
-        "*.lof",
-        "*.lot",
-        "*.out",
-        "*.toc",
-        "*.acn",
-        "*.acr",
-        "*.alg",
-        "*.glg",
-        "*.glo",
-        "*.gls",
-        "*.ist",
-        "*.fls",
-        "*.log",
-        "*.fdb_latexmk",
-        "*.bcf",
-        "*.run.xml",
-        "*.synctex.gz"
-    ]
-    // ======================== LaTeX 设置 END ========================
+  // 清空中间文件
+  "latex-workshop.latex.clean.fileTypes": [
+      "*.aux",
+      "*.bbl",
+      "*.blg",
+      "*.idx",
+      "*.ind",
+      "*.lof",
+      "*.lot",
+      "*.out",
+      "*.toc",
+      "*.acn",
+      "*.acr",
+      "*.alg",
+      "*.glg",
+      "*.glo",
+      "*.gls",
+      "*.ist",
+      "*.fls",
+      "*.log",
+      "*.fdb_latexmk",
+      "*.bcf",
+      "*.run.xml",
+      "*.synctex.gz"
+  ],
+  // ======================== LaTeX 设置 END ========================
 }
 ```

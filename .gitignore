@@ -22,3 +22,4 @@ zhmakeindex
 *.pdf
 
 *.synctex(busy)
+*.synctex
