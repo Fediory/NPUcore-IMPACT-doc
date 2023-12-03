@@ -1,1 +1,23 @@
 \section{利用GDB跟踪getpid系统调用}
+
+NPUcore的系统调用是基于中断来实现的，大致会经历以下步骤，如\autoref{table:系统调用通用过程}：
+（用户态，内核态由CPU特定寄存器中的几位来表示）
+
+\begin{table}[h]
+    \centering
+    \caption{系统调用通用过程}
+    \label{table:系统调用通用过程}
+    \begin{tabular}{|c|c|}
+        \hline
+        \textbf{用户态}  & \textbf{内核态}     \\\hline
+                        & hello.c(执行ecall) \\\hline
+        硬件断点保存     &                    \\\hline
+        OS手动断点保存   &                    \\\hline
+        中断处理         &                    \\\hline
+        中断返回，OS手动断点恢复 &                \\\hline
+        ret 硬件断点恢复 &                    \\\hline
+                        & hello.c继续执行     \\\hline
+    \end{tabular}
+\end{table}
+
+下面请你自己动手，使用调试软件跟踪一遍系统调用。

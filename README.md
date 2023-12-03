@@ -11,40 +11,53 @@
 5. 推荐另行创建自己的仓库用于组内共享编写，版本迭代较为稳定之后推到此仓库中。
 
 ## Latex 问题汇总
-* **常用latex语法汇总**
-
-  * 文本：Latex源文件中文本行不要过长，要保证一屏可以看完，无需滑动下方的滚动条。段内任意换行，latex会自动将文本合并到上一行，加了空行才是开启下一个自然段。
-  * 加粗：`\textbf{文本}`
-  * 插入图片（参考chapters\03\03.tex）
-
-  ```latex
-  \begin{figure}[htb]
-    \centering
-    \includegraphics[width=\textwidth]{figures/03-03-syscall和SBI区别.png}
-    \caption{
-        syscall和SBI区别
-    }
-    \label{fig:syscall和SBI区别}
-  \end{figure}
-  ```
-
-  使用 `\autoref{fig:syscall和SBI区别}`引用图片。
-  不明白的参数上网查询相关资料学习。
-  注意：插入的图片不应该有水印。
-  * 插入代码（参考chapters\03\01.tex）
-
-  ```latex
-  \begin{lstlisting}[language={Rust}, label={code:forktest},
-    caption={forktest.rs}]
-  
-  \end{lstlisting}
-  ```
-  
-  * 行内代码
-
-  ```latex
-  \lstinline`行内代码`
-  ```
+* 文本：Latex源文件中文本行不要过长，要保证一屏可以看完，无需滑动下方的滚动条。段内任意换行，latex会自动将文本合并到上一行，加了空行才是开启下一个自然段。
+* 加粗：`\textbf{文本}`
+* 插入图片：
+```latex
+\begin{figure}[htb]
+ \centering
+ \includegraphics[width=\textwidth]{figures/03-03-syscall和SBI区别.png}
+ \caption{
+     syscall和SBI区别
+ }
+ \label{fig:syscall和SBI区别}
+\end{figure}
+```
+使用 `\autoref{fig:syscall和SBI区别}`引用图片。
+不明白的参数上网查询相关资料学习。
+注意：插入的图片不应该有水印。
+* 插入代码：
+```latex
+\begin{lstlisting}[language={Rust}, label={code:forktest},
+ caption={forktest.rs}]
+这里放置具体代码
+\end{lstlisting}
+```
+注意修改label和caption的值。
+* 行内代码：
+```latex
+\lstinline`行内代码`
+```
+* 插入表格：
+```latex
+\begin{table}[h]
+ \centering
+ \caption{系统调用通用过程}
+ \label{table:系统调用通用过程}
+ \begin{tabular}{|c|c|}
+     \hline
+     \textbf{用户态}  & \textbf{内核态}     \\\hline
+                     & hello.c(执行ecall) \\\hline
+     硬件断点保存     &                    \\\hline
+     OS手动断点保存   &                    \\\hline
+     中断处理         &                    \\\hline
+     中断返回，OS手动断点恢复 &                \\\hline
+     ret 硬件断点恢复 &                    \\\hline
+                     & hello.c继续执行     \\\hline
+ \end{tabular}
+\end{table}
+```
 * **latex报错解决**
 
   * 报错 `Missing $ inserted`
