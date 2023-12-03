@@ -18,7 +18,7 @@ envp：环境变量数组，用于设置新程序的环境变量。
 （2）其余所有的进程均由初始进程initproc进行fork而来，初始进程initproc是所有进程的父进程。因此创建新进程的第二步便是调用fork系统调用
 
 （3）在调用fork后，新的进程还需要加载独立的程序代码和数据文件，这时便需要用到exec系统调用。
-##### sys_exec()
+% ##### sys_exec()
 
 exec()的作用：
 
@@ -97,7 +97,7 @@ exec可以在现有fork的基础上加载一个新应用的 ELF 可执行文件�
 4.准备将 ELF 文件的内容载入当前进程
 要对读取的文件做以下检查
     1、文件大小大于等于 4
-    2、同时，ELF文件以 4 位魔数"\x7fELF"开头，因此应检查文件首是否有此魔数。
+    2、同时，ELF文件以 4 位魔数\lstinline`\x7fELF`开头，因此应检查文件首是否有此魔数。
 \begin{lstlisting}[language={Rust}, label={code:forktest},
         caption={forktest.rs}]
         match working_inode.open(&path, OpenFlags::O_RDONLY, false) {

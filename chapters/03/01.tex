@@ -96,8 +96,8 @@ pub fn main() -> i32 {
 在 C 标准库中，\lstinline`fork()` 函数的实现方式一般是通过调用一个名为 \lstinline`_clone()` 的内部函数来完成的，
 该函数将 \lstinline`fork()` 的输入参数转换为 \lstinline`clone()` 系统调用所需要的参数，然后再进行调用。
 
-\begin{lstlisting}[language={Rust}, label={code:sys_fork},
-    caption={sys_fork}]
+\begin{lstlisting}[language={Rust}, label={code:sys fork},
+    caption={sys fork}]
 pub fn sys_fork() -> isize {
     const SIGCHLD: usize = 17;
     syscall(SYSCALL_CLONE, [SIGCHLD, 0, 0])
@@ -118,10 +118,10 @@ pub fn sys_fork() -> isize {
 
 exec系统调用是 Unix 和 Linux 操作系统中的一种常见的系统调用，它的作用是在当前进程的上下文中执行另一个程序。
 
-以下是一个 Rust 语言编写的程序，主要目的是演示如何使用exec系统调用。
+\autoref{code:exec test}是一个 Rust 语言编写的程序，主要目的是演示如何使用exec系统调用。
 
-\begin{lstlisting}[language={Rust}, label={code:exec_test},
-    caption={exec_test}]
+\begin{lstlisting}[language={Rust}, label={code:exec test},
+    caption={exec test}]
 #![no_std]
 #![no_main]
 use user_lib::{exit, exec, fork, wait, yield_};
@@ -202,10 +202,10 @@ sbrk函数的功能是改变进程的堆的大小，包括扩大与缩小。一�
 
 前两种情况代表堆空间的扩大，后两种情况代表堆空间的缩小。有两种可能遇到的问题：
 一是堆空间扩大时超过用户空间大小限制；二是堆空间缩小时堆顶指针小于堆底指针。
-这两种情况都是不合理的请求时，我们来编写用户态程序测试一下。
+这两种情况都是不合理的请求时，我们来编写用户态程序测试一下，见\autoref{code:sbrk test}。
 
-\begin{lstlisting}[language={Rust}, label={code:sbrk_test},
-    caption={sbrk_test}]
+\begin{lstlisting}[language={Rust}, label={code:sbrk test},
+    caption={sbrk test}]
 user_lib::println!("old_heap_pt:{:08x}", sbrk(0));
 user_lib::println!("increment:8192, 	new_heap_pt:{:08x}", sbrk(8192));
 user_lib::println!("increment:-4096, 	new_heap_pt:{:08x}", sbrk(-4096));

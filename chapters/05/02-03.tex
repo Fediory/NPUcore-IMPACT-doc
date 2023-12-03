@@ -154,7 +154,7 @@ schedule 函数负责将当前的进程切换到处理器调度进程(idle task)
 
 \_\_switch 函数接受两个参数，旧进程的内核栈指针和新进程的内核栈指针。
 它将旧进程的上下文(sp,ra,s0-s11)保存到内存中，然后从内存从取出新进程的上下文到CPU的寄存器中。
-\begin{lstlisting}[language={Rust}, label={code:__switch}, caption={__switch}]
+\begin{lstlisting}[language={Rust}, label={code:switch}, caption={__switch}]
 	.altmacro
 	.macro SAVE_SN n
 	sd s\n, (\n+2)*8(a0)
