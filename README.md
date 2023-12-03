@@ -42,6 +42,7 @@
 \end{lstlisting}
 ```
 注意修改label和caption的值。
+riscv汇编代码，将language设置为riscv即可。
 * 行内代码：
 ```latex
 \lstinline`行内代码`
