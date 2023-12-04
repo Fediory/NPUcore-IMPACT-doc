@@ -39,6 +39,7 @@
 \textbullet 若没有用完，则线程继续使用。
 \begin{figure}
     \centering
+    \caption[short]{时间片轮转}
     \includegraphics{figures/05-02-04时间片轮转.png}
 \end{figure}
 （2）npucore进程调度的创新：
@@ -56,6 +57,7 @@ npucore团队在进行性能调优的过程中，发现操作系统运行示例�
 
 \begin{figure}[H]
     \centering
+    \caption[short]{进程的状态}
     \includegraphics{figures/05-02-04进程状态.png}
 \end{figure}
 
@@ -69,7 +71,8 @@ npucore团队在进行性能调优的过程中，发现操作系统运行示例�
 任务管理器TaskManager是进程调度的容器，其包含一个就绪队列和一个可中断的睡眠状态队列。我们知道，进程由数据结构TCB来描述，而目前正在运行的TCB处于processor（处理器）之中管理，而一台计算机不只有一个进程在工作 ，那些没有在processor上运行的进程TCB则处于任务管理器中的两个队列之中，一部分是可以准备运行的就绪TCB，一部分是处于休眠状态的TCB，该休眠状态可以被中断程序唤醒，因此是可中断的队列。
 
 根据有没有oom_handler特性对于TaskManger有两种数据结构，当有时候，会包含ActiveTracker这个数据结构，这个的作用主要是维护一个位图来跟踪进程的活动状态，可以检查和设置活动状态
-\begin{lstlisting}[language=rust]
+
+\begin{lstlisting}[language=rust,caption={数据结构ActiveTracker}]
     pub struct ActiveTracker {
             bitmap: Vec<u64>,
         }
@@ -96,11 +99,12 @@ npucore团队在进行性能调优的过程中，发现操作系统运行示例�
             pub fn mark_inactive(&mut self, pid: usize) {
                 self.bitmap[pid / 64] &= !(1 << (pid % 64))
             }
-        } 
+        }
+
 \end{lstlisting}
 
 当没有oom_handler特性时TaskManger的数据结构如下：
-\begin{lstlisting}[language=rust]
+\begin{lstlisting}[language=rust,caption={数据结构TaskManager}]
     pub struct TaskManager {
     pub ready_queue: VecDeque<Arc<TaskControlBlock>>,
     pub interruptible_queue: VecDeque<Arc<TaskControlBlock>>,
@@ -114,7 +118,7 @@ npucore团队在进行性能调优的过程中，发现操作系统运行示例�
 可中断等待队列interruptible_queue专门用于存放处于可中断的睡眠状态的进程，这些进程可以被中断唤醒以继续执行。
 
 关于TaskManger的具体实现如下：
-\begin{lstlisting}[language=rust]
+\begin{lstlisting}[language=rust,caption={TaskManager下的方法}]
     impl TaskManager {
     #[cfg(feature = "oom_handler")]
     pub fn new() -> Self {
@@ -213,6 +217,7 @@ npucore团队在进行性能调优的过程中，发现操作系统运行示例�
 \end{lstlisting}
 \begin{table}[H]
     \centering
+    \caption{TaskManager下方法的介绍}
     \begin{tabularx}{17cm}{|X|X|X|X|X|}
         \hline
         方法名 & 目的 & 参数 & 操作 & 返回值 \\
@@ -246,7 +251,7 @@ npucore团队在进行性能调优的过程中，发现操作系统运行示例�
     \end{tabularx}
 \end{table}
 这是最主要的进程调度的数据结构TaskManger的主要内容，Npucore除了TaskManger提供的两个队列之外还建立了Waitqueue,TimeoutWaitQueue两个队列分别为等待队列和超时等待队列，这两个队列的结构体为:
-\begin{lstlisting}[language=rust]
+\begin{lstlisting}[language=rust,caption={数据结构WaitQueue与TimeoutWaitQueue}]
     pub struct WaitQueue {
     inner: VecDeque<Weak<TaskControlBlock>>,
 }
@@ -257,7 +262,7 @@ pub struct TimeoutWaitQueue {
 都接收了TCB的弱引用作为队列元素，在Npucore 中，TaskManger包含的方法实现了最主要的进程调度，WaitQueue和TimeoutWaitQueue则是在进程/线程同步方面Futex的视线中发挥作用
 
 以下是关于WaitQueue的实现:
-\begin{lstlisting}[language=rust]
+\begin{lstlisting}[language=rust,caption={数据结构WaitQueue下的方法}]
     impl WaitQueue {
     pub fn new() -> Self {
         Self {
@@ -315,6 +320,7 @@ pub struct TimeoutWaitQueue {
 \end{lstlisting}
 \begin{table}[H]
     \centering
+    \caption{WaitQueue下方法的介绍}
     \begin{tabularx}{17cm}{|X|X|X|X|X|}
         \hline
         方法名 & 目的 & 参数 & 操作 & 返回值 \\
@@ -338,7 +344,7 @@ pub struct TimeoutWaitQueue {
 
 以下是关于TimeoutWaitQueue的实现:
 
-\begin{lstlisting}[language=rust]
+\begin{lstlisting}[language=rust,caption={TimeoutWaitQueue下的方法}]
     impl TimeoutWaitQueue {
     pub fn new() -> Self {
         Self {
@@ -394,6 +400,7 @@ pub struct TimeoutWaitQueue {
 }
 \end{lstlisting}
 \begin{table}[H]
+    \caption{TimeoutWaitQueue下的方法的介绍}
     \begin{tabularx}{17cm}{|X|X|X|X|X|}
         \hline
         方法名 & 目的 & 参数 & 操作 & 返回值 \\
@@ -425,6 +432,7 @@ OS 必须为进程提供互相协作的方法。譬如，父进程需要等待�
 
 \begin{figure}[H]
     \centering
+    \caption[short]{上下文切换}
     \includegraphics{figures/05-02-04上下文切换.png}
 \end{figure}
 
@@ -468,7 +476,7 @@ OS 必须为进程提供互相协作的方法。譬如，父进程需要等待�
 suspend_current_and_run_next函数会使得当前进程从current_task切换到中转进程idle，而调度器如何将idle切换为next_task呢？
 
 它将使用run_tasks()函数完成从idle到next_task的切换。run_tasks()函数位于os/src/task/processor.rs下。让我们看 os/src/task/processor.rs 下的 run_task 函数：
-\begin{lstlisting}[language=rust]
+\begin{lstlisting}[language=rust,caption={run_task函数}]
     pub fn run_tasks() {
     loop {
         let mut processor = PROCESSOR.lock();
@@ -499,7 +507,7 @@ suspend_current_and_run_next函数会使得当前进程从current_task切换到�
 
 fetch_task() 的作用是选取⼀个将要执⾏的进程 
 
-\begin{lstlisting}[language=rust]
+\begin{lstlisting}[language=rust,caption={fetch_task函数}]
     pub fn fetch_task() -> Option<Arc<TaskControlBlock>> { 
 TASK_MANAGER.lock().fetch() 
 }
@@ -521,45 +529,46 @@ self.ready_queue.pop_front()
 
 等待队列（wait_queue）是用于管理等待特定资源或时间的进程或线程，它是一种先进先出的数据结构。该队列通常用于解决并发编程中的同步和互斥问题。当多个进程或者线程需要访问共享资源时，如果资源已经被占用，那么需要将正在等待的进程放入等待队列，以便在资源可用时依次获得访问权限。
 
-当某资源得到释放，是的等待队列中的进程可被唤醒时，操作系统会调用wake_at_most这个函数。
+当某资源得到释放，是的等待队列中的进程可被唤醒时，操作系统会调用wake_at_most这个方法。
 
-\begin{lstlisting}[language=rust]
-            if limit == 0 {
-            return 0;
-        }
-        let mut manager = TASK_MANAGER.lock();
-        let mut cnt = 0;
-        while let Some(task) = self.inner.pop_front() {
-            match task.upgrade() {
-                Some(task) => {
-                    let mut inner = task.acquire_inner_lock();
-                    match inner.task_status {
-                        super::TaskStatus::Interruptible => {
-                            inner.task_status = super::task::TaskStatus::Ready
-                        }
-                        _ => continue,
-                    }
-                    drop(inner);
-                    if manager.try_wake_interruptible(task).is_ok() {
-                        cnt += 1;
-                    }
-                    if cnt == limit {
-                        break;
-                    }
-                }
-                None => continue,
-            }
-        }
-        cnt
-    }
+\begin{lstlisting}[language=rust,caption={wake_at_most方法}]
+    pub fn wake_at_most(&mut self, limit: usize) -> usize {
+        if limit == 0 {
+            return 0;
+        }
+        let mut manager = TASK_MANAGER.lock();
+        let mut cnt = 0;
+        while let Some(task) = self.inner.pop_front() {
+            match task.upgrade() {
+                Some(task) => {
+                    let mut inner = task.acquire_inner_lock();
+                    match inner.task_status {
+                        super::TaskStatus::Interruptible => {
+                            inner.task_status = super::task::TaskStatus::Ready
+                        }
+                        _ => continue,
+                    }
+                    drop(inner);
+                    if manager.try_wake_interruptible(task).is_ok() {
+                        cnt += 1;
+                    }
+                    if cnt == limit {
+                        break;
+                    }
+                }
+                None => continue,
+            }
+        }
+        cnt
+    }
 \end{lstlisting}
 该函数的功能为：从等待队列中唤醒最多limit个任务，并返回实际唤醒的任务数量。\\
 首先，函数检查limit是否为0，如果为0，则表示没有唤醒任何任务。\\
 然后，函数获取全局的任务管理器的锁，确保任务管理器的线程安全性。\\
 接下来，函数使用cnt记录唤醒的任务的数量，初始为0.\\
-然后，函数进入循环，从等待队列(self.inner）的头部弹出任务，并进行处理。\\
+然后，函数进入循环，从等待队列（self.inner）的头部弹出任务，并进行处理。\\
 在处理吃钱，函数会尝试将任务引用升级为ARC类型的对象。如果该对象有效，则执行以下操作：\\
-1）获取任务对象的内部锁(acquire_inner_lock）\\
+1）获取任务对象的内部锁（acquire_inner_lock）\\
 2）根据任务的状态进行不同处理，interruptible的任务，将其状态设置为ready，如果为其他状态，则不需要唤醒，继续处理下一个任务。\\
 3）释放任务对象的内部锁（drop（inner））\\
 4）尝试使用try_wake_interruptible方法唤醒任务\\
@@ -569,8 +578,8 @@ self.ready_queue.pop_front()
 
 经过该函数的处理，那些得到了资源的进程，可以被唤醒进入ready队列中，等待时间片的轮转。而该函数中又涉及到了一个关键的函数try_wake_interruptible:
 
-\begin{lstlisting}[language=rust]
-        pub fn try_wake_interruptible(
+\begin{lstlisting}[language=rust,caption={try_wake_interruptible方法}]
+    pub fn try_wake_interruptible(
         &mut self,
         task: Arc<TaskControlBlock>,
     ) -> Result<(), WaitQueueError> {
@@ -599,7 +608,7 @@ npucore依靠定时器在一定的时间间隔下进入trap，自动唤醒超时
 
 在os/src/trap/mod.rs源文件中的trap_handle函数中有对SupervisorTimer中断的处理方式：
 
-\begin{lstlisting}[language=rust]
+\begin{lstlisting}[language=rust,caption={trap_handler中对SupervisorTimer中断的处理}]
             Trap::Interrupt(Interrupt::SupervisorTimer) => {
             do_wake_expired();
             set_next_trigger();
@@ -607,7 +616,7 @@ npucore依靠定时器在一定的时间间隔下进入trap，自动唤醒超时
         }
 \end{lstlisting}
 该函数首先调用了do_wake_expired方法：
-\begin{lstlisting}[language=rust]
+\begin{lstlisting}[language=rust,caption={do_wake_expired方法}]
     pub fn do_wake_expired() {
     TIMEOUT_WAITQUEUE
         .lock()
@@ -615,7 +624,7 @@ npucore依靠定时器在一定的时间间隔下进入trap，自动唤醒超时
 }
 \end{lstlisting}
 其中又调用了TimeoutWaitQueue的wake_expired方法:
-\begin{lstlisting}[language=rust]
+\begin{lstlisting}[language=rust,caption={wake_expired方法}]
         pub fn wake_expired(&mut self, now: TimeSpec) {
         let mut manager = TASK_MANAGER.lock();
         while let Some(waiter) = self.inner.pop() {
