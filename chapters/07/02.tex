@@ -1,1 +1,110 @@
 \section{块设备接口层}
+
+块设备接口层为文件系统提供了对块设备进行读写的操作接口，其代码在easy-fs/src/block\_dev.rs中。作为easy-fs库的最底层，其声明了一个块设备的抽象接口BlockDevice，该trait定义了设备驱动所需要实现的读写接口，如下：
+
+\begin{lstlisting}[language={Rust}, label={code:blockdevice},
+	caption={easy-fs/src/block\_dev.rs}]
+pub trait BlockDevice: Send + Sync + Any {
+	/// Read block from BlockDevice
+	/// The function panics when the size of 'buf' is not a multiple of BLOCK_SZ
+	fn read_block(\&self, block_id: usize, buf: \&mut [u8]);
+	
+	/// Write block into the file system.
+	/// The function panics when the size of 'buf' is not a multiple of BLOCK_SZ
+	fn write_block(\&self, block_id: usize, buf: \&[u8]);
+	
+	/// We should rewrite the API for K210 since it supports NATIVE multi-block clearing
+	fn clear_block(\&self, block_id: usize, num: u8) {
+		self.write_block(block_id, \&[num; BLOCK_SZ]);
+	}
+	
+	/// We should rewrite the API for K210 if it supports NATIVE multi-block clearing
+	fn clear_mult_block(\&self, block_id: usize, cnt: usize, num: u8) {
+		for i in block_id..block_id + cnt {
+			self.write_block(i, \&[num; BLOCK_SZ]);
+		}
+	}
+}
+\end{lstlisting}
+
+该trait主要实现两个抽象方法：
+
+\begin{itemize}
+	\item [$\bullet$]
+	read\_block：将编号为block\_id的块从磁盘读入内存中的缓冲区buf；
+	\item [$\bullet$]
+	write\_block：将内存中的缓冲区buf中的数据写入磁盘编号为block\_id的块。
+\end{itemize}
+
+在easy-fs中并没有一个实现了BlockDevice trait的具体类型，因为块设备仅支持以块为单位进行随机读写，而这两个方法需要由具体的块设备驱动来实现。实际上，这是需要由文件系统的使用者（比如操作系统内核或直接测试easy-fs文件系统的easy-fs-fuse应用程序）提供并接入到easy-fs库的。
+
+块设备接口层及其以下的设备驱动层实现后，向上为接下来要介绍的easy-fs库的块缓存层提供这两个方法调用，进行块缓存的管理。换句话说，easy-fs可以访问实现了BlockDevice trait的块设备驱动程序。
+
+同时，Npucore为了实现K210提供的关于用给定字符清空单个或若干个连续磁盘块的API，还对该trait的write\_block方法进行了进一步封装，增加了clear\_block与clear\_mult\_block方法，实现了按照fat32文件系统的磁盘块大小，写入给定字符的功能。至于更复杂的功能，则需要由上层层次进行实现。
+
+Npucore目前实现了对SD卡的驱动实现。在os/src/drivers/block/sdcard.rs中对上述trait进行了实现，通过K210依赖中提供的GPIO端口SPI串口底层支持，可以对SD卡直接进行操作。具体代码如下：
+
+\begin{lstlisting}[language={Rust}, label={code:blockdevice},
+	caption={os/src/drivers/block/sdcard.rs}]
+impl BlockDevice for SDCardWrapper {
+	fn read_block(&self, block_id: usize, buf: &mut [u8]) {
+		let lock = self.0.lock();
+		let mut result = lock.read_sector(buf, block_id as u32);
+		let mut cont_cnt = 0;
+		while result.is_err() {
+			if cont_cnt >= 0 {
+				log::error!("[sdcard] read_sector(buf, {}) error. Retrying...", block_id);
+				result = lock.read_sector(buf, block_id as u32);
+			}
+			cont_cnt += 1;
+			if cont_cnt >= 5 {
+				log::error!(
+				"[sdcard] read_sector(buf[{}], {}) error exceeded contineous retry count, waiting...",
+				buf.len(),
+				block_id
+				);
+				Self::wait_for_one_sec();
+				if lock.read_sector(buf, block_id as u32).is_err() {
+					lock.init();
+					Self::wait_for_one_sec();
+				} else {
+					break;
+				}
+				cont_cnt = 0;
+			}
+		}
+	}
+	fn write_block(&self, block_id: usize, buf: &[u8]) {
+		let lock = self.0.lock();
+		let mut result = lock.write_sector(buf, block_id as u32);
+		let mut cont_cnt = 0;
+		while result.is_err() {
+			if cont_cnt >= 0 {
+				log::error!(
+				"[sdcard] write_sector(buf, {}) error. Retrying...",
+				block_id
+				);
+				result = lock.write_sector(buf, block_id as u32);
+			}
+			cont_cnt += 1;
+			if cont_cnt >= 5 {
+				log::error!(
+				"[sdcard] write_sector(buf[{}], {}) error exceeded contineous retry count, waiting...",
+				buf.len(),
+				block_id
+				);
+				Self::wait_for_one_sec();
+				if lock.write_sector(buf, block_id as u32).is_err() {
+					lock.init();
+					Self::wait_for_one_sec();
+				} else {
+					break;
+				}
+				cont_cnt = 0;
+			}
+		}
+	}
+}
+\end{lstlisting}
+
+这两个方法实现了对块号为block\_id的SD存储区进行直接读写。注意，还设置了在I/O故障的情况的读写最大重试次数为5。
