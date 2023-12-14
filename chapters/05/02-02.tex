@@ -3,8 +3,8 @@ execve 被用于替换当前进程的地址空间和上下文为新程序的，�
 filename：要执行的新程序的文件路径。
 argv：参数数组，用于传递给新程序的命令行参数。
 envp：环境变量数组，用于设置新程序的环境变量。
-\begin{lstlisting}[language={Rust}, label={code:forktest},
-    caption={forktest.rs}]
+\begin{lstlisting}[language={Rust},
+    caption={参数说明}]
     pub fn sys_execve(
         pathname: *const u8,
         mut argv: *const *const u8,
@@ -26,8 +26,8 @@ fork通常只创建现有进程的拷贝
 exec可以在现有fork的基础上加载一个新应用的 ELF 可执行文件中的代码和数据替换原有的应用地址空间中的内容，并开始执行。
 
 1.首先看函数的输入参数与返回值
-\begin{lstlisting}[language={Rust}, label={code:forktest},
-    caption={forktest.rs}]
+\begin{lstlisting}[language={Rust}, 
+    caption={函数的输入参数与返回值}]
     pub fn sys_execve(
         pathname: *const u8,
         mut argv: *const *const u8,
@@ -40,8 +40,8 @@ exec可以在现有fork的基础上加载一个新应用的 ELF 可执行文件�
     }
 \end{lstlisting}
 2.将argv和envp变量字符串向量，通过循环，将*const *const u8转为Vec<String>数据类型。为后面的执行做准备。
-\begin{lstlisting}[language={Rust}, label={code:forktest},
-    caption={forktest.rs}]
+\begin{lstlisting}[language={Rust}, 
+    caption={类型转换}]
     let mut argv_vec: Vec<String> = Vec::with_capacity(16);
     let mut envp_vec: Vec<String> = Vec::with_capacity(16);
     if !argv.is_null() {
@@ -84,8 +84,8 @@ exec可以在现有fork的基础上加载一个新应用的 ELF 可执行文件�
 
 \end{lstlisting}
 3.debug 层信息输出
-\begin{lstlisting}[language={Rust}, label={code:forktest},
-    caption={forktest.rs}]
+\begin{lstlisting}[language={Rust}, 
+    caption={debug信息}]
     debug!(
         "[exec] argv: {:?} /* {} vars */, envp: {:?} /* {} vars */",
         argv_vec,
@@ -98,8 +98,8 @@ exec可以在现有fork的基础上加载一个新应用的 ELF 可执行文件�
 要对读取的文件做以下检查
     1、文件大小大于等于 4
     2、同时，ELF文件以 4 位魔数\lstinline`\x7fELF`开头，因此应检查文件首是否有此魔数。
-\begin{lstlisting}[language={Rust}, label={code:forktest},
-        caption={forktest.rs}]
+\begin{lstlisting}[language={Rust},
+        caption={文件检查}]
         match working_inode.open(&path, OpenFlags::O_RDONLY, false) {
             Ok(file) => {
                 if file.get_size() < 4 {
@@ -125,8 +125,8 @@ exec可以在现有fork的基础上加载一个新应用的 ELF 可执行文件�
 5.真正的载入过程。loaf_elf将当前的elf文件内容覆盖当前的进程。
 show_frame_consumption!宏输出对应的信息
 
-\begin{lstlisting}[language={Rust}, label={code:forktest},
-    caption={forktest.rs}]
+\begin{lstlisting}[language={Rust}, 
+    caption={文件载入}]
     let task = current_task().unwrap();
     show_frame_consumption! {
         "load_elf";
@@ -146,7 +146,7 @@ clone()
 
 创建线程的函数`pthread_create`内部使用的也是clone函数。在glibc的`/sysdeps/unix/sysv/linux/createthread.c`源码中可以看到，创建线程的函数`create_thread`中使用了clone函数，并指定了相关的`flags`：
 \begin{lstlisting}[language={Rust}, label={code:forktest},
-    caption={forktest.rs}]
+    caption={FLAGS设置}]
     const int clone_flags = (CLONE_VM | CLONE_FS 
     | CLONE_FILES | CLONE_SYSVSEM 
     | CLONE_SIGHAND | CLONE_THREAD 
@@ -156,8 +156,8 @@ clone()
 同样，npucore中的`clone`也使用了这种模式，以这两种方式来创建进程和线程
 
 clone的使用
-\begin{lstlisting}[language={Rust}, label={code:forktest},
-    caption={forktest.rs}]
+\begin{lstlisting}[language={Rust}, 
+    caption={clone}]
     pub fn sys_clone(
         flags: u32,
         stack: *const u8,
@@ -178,8 +178,8 @@ flags:
 号不是 SIGCHLD ，那么父进程在使用wait(2)等待子进程退出时必须指定 __WALL 或WCLONE选项。如
 果没有指定任何信号(即，0)，则在子进程退出后不会向父进程发送任何信号。
 以下是npucore中如何从 flags 中获取子进程结束信号的代码块
-\begin{lstlisting}[language={Rust}, label={code:forktest},
-    caption={forktest.rs}]
+\begin{lstlisting}[language={Rust},
+    caption={获取子进程结束信号的代码块}]
     let exit_signal = match Signals::from_signum((flags & 0xff) as usize) {
         Ok(signal) => signal,
         Err(_) => {
@@ -195,7 +195,7 @@ flags:
 CloneFlags
 CloneFlags 用来指定 clone 系统调用的行为，npucore的 CloneFlags 中有如下几种值
 \begin{lstlisting}[language={Rust}, label={code:forktest},
-    caption={forktest.rs}]
+    caption={CloneFlags}]
     bitflags! {
         pub struct CloneFlags: u32 {
             //const CLONE_NEWTIME         =   0x00000080;
@@ -247,7 +247,7 @@ CLONE_SETTLS
 将TLS(Thread Local Storage)保存到 tls 字段中。
 npucore中clone的具体实现
 \begin{lstlisting}[language={Rust}, label={code:forktest},
-    caption={forktest.rs}]
+    caption={clone的具体实现}]
     let child = parent.sys_clone(flags, stack, tls, exit_signal);
   \end{lstlisting}
 npucore中clone的具体实现实际是实现在TCB结构体的方法 sys_clone 里，这里就是调用了
@@ -259,7 +259,7 @@ parent（也就是clone的调用者）的sys_clone，它返回新创建的进程
 如果有 CLONE_THREAD ，子线程会放到与调用进程相同的线程组中。当一个 clone 调用没有指定
 CLONE_THREAD 时，生成的线程会放到一个新的线程组中，其TGID等于该线程的TID
 \begin{lstlisting}[language={Rust}, label={code:forktest},
-    caption={forktest.rs}]
+    caption={CLONE_THREAD的实现}]
     let memory_set = if flags.contains(CloneFlags::CLONE_VM) {
         self.vm.clone()
     } else {
@@ -283,7 +283,7 @@ CLONE_THREAD 时，生成的线程会放到一个新的线程组中，其TGID等
 接着clone会像操作系统申请pid，tid，tgid和内核栈，因为npucore模仿了linux的“以轻量级进程代替
 线程”，所以这里的pid与tid相同，为线程号，而tgid代表该进程的进程号
 \begin{lstlisting}[language={Rust}, label={code:forktest},
-    caption={forktest.rs}]
+    caption={线程号设置}]
     // alloc a pid and a kernel stack in kernel space
     let pid_handle = pid_alloc();
     let tid = tid_allocator.lock().alloc();
@@ -298,7 +298,7 @@ CLONE_THREAD 时，生成的线程会放到一个新的线程组中，其TGID等
   \end{lstlisting}
 然后clone会进行新进程TCB的构造
 \begin{lstlisting}[language={Rust}, label={code:forktest},
-    caption={forktest.rs}]
+    caption={进程TCB的构造}]
     let task_control_block = Arc::new(TaskControlBlock {
         pid: pid_handle,
         tid,
@@ -376,7 +376,7 @@ semaphore adjustments。如果没有设置该标志，则子进程会有一个�
 空。
 与信号量操作有关。
 \begin{lstlisting}[language={Rust}, label={code:forktest},
-    caption={forktest.rs}]
+    caption={信号量操作}]
     files: if flags.contains(CloneFlags::CLONE_FILES) {
         self.files.clone()
     } else {
@@ -408,7 +408,7 @@ semaphore adjustments。如果没有设置该标志，则子进程会有一个�
 这里会修改父进程的子进程表，如果设置了 CLONE_PARENT 或 CLONE_THREAD 则代表新建进程与调用进
 程是兄弟关系，反之则调用进程是新建进程的父进程
 \begin{lstlisting}[language={Rust}, label={code:forktest},
-    caption={forktest.rs}]
+    caption={修改父进程的子进程表}]
     // add child
     if flags.contains(CloneFlags::CLONE_PARENT) || flags.contains(CloneFlags::CLONE_THREAD) {
         if let Some(grandparent) = &parent_inner.parent {
@@ -425,7 +425,7 @@ semaphore adjustments。如果没有设置该标志，则子进程会有一个�
   \end{lstlisting}
 最后， clone 会设置新进程的上下文以及tls并返回
 \begin{lstlisting}[language={Rust}, label={code:forktest},
-    caption={forktest.rs}]
+    caption={设置新进程的上下文}]
     let trap_cx = task_control_block.acquire_inner_lock().get_trap_cx();
     if flags.contains(CloneFlags::CLONE_THREAD) {
         *trap_cx = *parent_inner.get_trap_cx();
