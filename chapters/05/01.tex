@@ -14,6 +14,7 @@
 在运行状态下时间片耗尽或者是主动让出CPU的时候，进程会进入到就绪队列中，等待下一次被调度。
 在运行的时候调用诸如wait等系统调用，进程会进入到阻塞队列中，等待被唤醒。
 当进程执行结束，他会退出，释放系统资源。
+
 npucore团队在进行性能调优之时，发现在操作系统运行示例程序时，IO操作导致CPU挂起的性能损失非常之大，因此我们将调度器进行了大改，使其完全支持了阻塞式的进程调度模式。
 阻塞和非阻塞IO是访问设备的两种模式，驱动程序可以灵活的支持者两种用户空间对设备的访问方式。
 阻塞操作是指在执行设备操作时，若不能获得资源，则挂起进程直到满足可操作的条件后再进行操
@@ -28,7 +29,7 @@ npucore为每一个进程分配系统资源，包括内存、文件描述符、C
 npucore中，fork系统调用用于创建一个新的进程，新的进程称为子进程，原来的进程称为父进程。
 而所有的其他进程都是initproc的子进程，他们通过fork得到。initproc是需要在内核启动过程中创建的第一个进程。
 对应的代码如下：
-\begin{lstlisting}[language=rust]
+\begin{lstlisting}[language={Rust}]
     lazy_static! {
     pub static ref INITPROC: Arc<TaskControlBlock> = Arc::new({
         let elf = ROOT_FD.open("initproc", OpenFlags::O_RDONLY, true).unwrap();
@@ -74,7 +75,7 @@ I/O设备的复用将在I/O章节详细介绍。在这一章中，我们将介�
 
 管理进程时，npucore使用了TCB的数据结构，不同于传统的PCB数据结构，npucore将线程视为共享栈的进程。
 TCB的数据结构如下：
-\begin{lstlisting}[language=rust]
+\begin{lstlisting}[language={Rust}]
 pub struct TaskControlBlock {
     // immutable
     pub pid: PidHandle,

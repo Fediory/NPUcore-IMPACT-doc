@@ -129,7 +129,7 @@ UNIX网络编程第二卷进程间通信对mmap函数进行了说明。该函数
 
 第二步：mmap获取映射区域的起始地址，如果设置了MAP_FIXED，则会直接使用用户的参数start，
 不对地址做修正。
-\begin{lstlisting}[language=rust,caption={mmap}]
+\begin{lstlisting}[language={Rust},caption={mmap}]
     let start_va: VirtAddr = if flags.contains(MapFlags::MAP_FIXED) {
         // unmap if exists
         self.munmap(start, len);
@@ -140,7 +140,7 @@ UNIX网络编程第二卷进程间通信对mmap函数进行了说明。该函数
 MAP_ANONYMOUS，就直接将要新映射的区域new_area与最后一次mmap映射区域合并并返回，没
 有设置就会将最后一次mmap映射区域的末尾作为新映射的区域的起始。而新映射的区域的末尾则根据
 用户参数len设置。
-\begin{lstlisting}[language=rust,caption={mmap}]
+\begin{lstlisting}[language={Rust},caption={mmap}]
     else {
         if let Some(idx) = idx {
         let area = &mut self.areas[idx];
