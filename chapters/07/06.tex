@@ -1,1 +1,118 @@
 \section{文件描述符层}
+一个进程可以访问的多个文件，所以在操作系统中需要有一个管理
+进程访问的多个文件的结构，这就是 \textbf{文件描述符表} (File
+Descriptor Table) ，其中的每个 \textbf{文件描述符} (File Descriptor) 代
+表了一个特定读写属性的I/O资源。
+
+为简化操作系统设计实现，可以让每个进程都带有一个线性的 \textbf{文
+件描述符表} ，记录该进程请求内核打开并读写的那些文件集合。
+而 \textbf{文件描述符} (File Descriptor) 则是一个非负整数，表示\textbf{文件描述符表}中一个打开的\textbf{ 文件描述符} 所处的位置（可理解为数组下
+标）。进程通过\textbf{文件描述符}，可以在自身的\textbf{文件描述符表}中找到对
+应的文件记录信息，从而也就找到了对应的文件，并对文件进行读
+写。当打开（ open ）或创建（ create ） 一个文件的时
+候，一般情况下内核会返回给应用刚刚打开或创建的文件对应的文
+件描述符；而当应用想关闭（ close ）一个文件的时候，也需
+要向内核提供对应的\textbf{文件描述符}，以完成对应文件相关资源的回收
+操作。
+
+因为 OSInode 也是一种要放到进程\textbf{文件描述符表}中文件，并可
+通过 sys\_read/write 系统调用进行读写操作，因此我们也需
+要为它实现 File Trait ：
+\begin{lstlisting}[language=Rust]
+fn readable(&self) -> bool {
+	self.readable
+}
+fn writable(&self) -> bool {
+	self.writable
+}
+fn read(\&self, offset: Option<\&mut usize>, buffer: \&mut [u8]) -> usize {
+	match offset {
+		Some(offset) => {
+			let len =
+			self.inner.read_at_block_cache(*offset,
+			buffer);
+			*offset += len;
+			len
+		}
+		None => {
+			let mut offset =
+			self.offset.lock();
+			let len =
+			self.inner.read_at_block_cache(*offset,
+			buffer);
+			*offset += len;
+			len
+		}
+	}
+}
+
+fn write(\&self, offset: Option<\&mut
+usize>, buffer: \&[u8]) -> usize {
+	match offset {
+		Some(offset) => {
+			let len =
+			self.inner.write_at_block_cache(*offset,
+			buffer);
+			*offset += len;
+			len
+		}
+		None => {
+			let mut offset =
+			self.offset.lock();
+			let inode_lock =
+			self.inner.write();
+			if self.append {
+				*offset =
+				self.inner.get_file_size_wlock(\&inode_lock)
+				as usize;
+			}
+			let len = self
+			.inner
+   .write_at_block_cache_lock(\&inode_lock,
+   *offset, buffer);
+   *offset += len;
+   len
+}
+}
+}
+\end{lstlisting}
+
+read 将数据从文件读取到提供的缓冲区中。 offset 参数是
+一个可选的 usize 的可变引用，允许指定开始读取的偏移量。如
+果提供了 Some(offset) ，则从指定的偏移量开始读取，并相
+应地更新偏移量。如果提供了 None ，该方法锁定偏移量，使用
+当前偏移量从文件中读取数据，并相应地更新偏移量。
+
+write 将提供的缓冲区中的数据写入文件。与 read 方法类
+似，它接受一个可选的 usize 的可变引用作为偏移量参数。如果
+提供了 Some(offset) ，则从指定的偏移量开始写入，并相应
+地更新偏移量。如果提供了 None ，该方法锁定偏移量，获取文
+件inode的写锁，然后将数据写入文件。如果设置了 append 标
+志，它在写入之前将偏移量更新为文件的末尾。
+
+同时，在NPUcore中，使用文件描述符表 Fdtable 来进行对文
+件描述符的管理:
+
+\begin{lstlisting}[language=Rust]
+pub struct FdTable {
+	inner: Vec<Option<FileDescriptor>>,
+	recycled: Vec<u8>,
+	soft_limit: usize,
+	hard_limit: usize,
+}
+\end{lstlisting}
+
+可以理解为文件描述符表内部存在一个向量组，我们通过open等
+操作得到的文件描述符（非负整数），对应的就是该数组的下标。
+
+\begin{lstlisting}[language=Rust]
+pub struct FileDescriptor {
+	cloexec: bool,
+	nonblock: bool,
+	pub file: Arc<dyn File>,
+}
+\end{lstlisting}
+
+所以在一个进程中，活跃的文件被存放在文件描述符表中，我们通
+过文件描述符表获得我们需要的文件描述符，从而找到我们需要操
+作的文件，进行处理。
