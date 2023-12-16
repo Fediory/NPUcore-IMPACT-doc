@@ -11,7 +11,7 @@ VirtIO由 Rusty Russell 开发，对准虚拟化 hypervisor 中的一组通用�
 \begin{figure}[H]
     \centering
     \scalebox{0.5}{\includegraphics{figures/06-03-1.png}}
-    \caption{6-3-1. virtio架构}
+    \caption{virtio架构}
 \end{figure}
 前端驱动：
 
@@ -70,7 +70,7 @@ VRING是由虚拟机virtio设备驱动创建的用于数据传输的共享内存
 \begin{figure}[H]
     \centering
     \includegraphics{figures/06-03-2.png}
-    \caption{6-3-2. 虚拟机IO请求流程}
+    \caption{虚拟机IO请求流程}
 \end{figure}
 1)虚拟机产生的IO请求会被前端的virtio设备接收，并存放在virtio设备散列表scatterlist里；
 
@@ -96,5 +96,5 @@ VRING是由虚拟机virtio设备驱动创建的用于数据传输的共享内存
 \begin{figure}[H]
     \centering
     \includegraphics{figures/06-03-3.png}
-    \caption{6-3-3. 数据共享机制可视化}
+    \caption{数据共享机制可视化}
 \end{figure}

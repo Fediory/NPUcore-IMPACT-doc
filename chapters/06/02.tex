@@ -11,7 +11,7 @@ SD：SD卡为Secure Digital Memory Card, 即安全数码卡。它在MMC的基础
 \begin{figure}[H]
     \centering
     \scalebox{0.5}{\includegraphics{figures/06-02-SD.jpg}}
-    \caption{6-2-1. SD卡内部结构}
+    \caption{SD卡内部结构}
 \end{figure}
 
 SD卡内部结构如上图所示
@@ -26,89 +26,150 @@ MCI：MCI是Multimedia Card Interface的简称，即多媒体卡接口。上述�
 
 1.5.MMC/SD/SDIO卡的区别
 
-
+\begin{table}
+    \centering
 \begin{tabular}{|c|c|c|c|}
-    
     \hline
-    卡属性&引脚个数&宽度&长度&厚度&SPI传输模式&1位传输模式&时钟频率&最高传输率&最高SPI传输率\\
+    卡属性&MMC卡&SD卡&SDIO卡\\
     \hline
-    MMC卡&7&24mm&32mm&1.4mm&可选&是&否&0-20MHz&20Mbit/s&20Mbit/s \\
+    引脚个数&7&9&9\\
     \hline
-    SD卡&9&24mm&32mm&2.1mm&支持&是&可选&0-25MHz&100Mbit/s&25Mbit/s \\
+    宽度&24mm&24mm&24mm\\
     \hline
-    SD卡&9&24mm&32mm+&2.1mm&支持&是&可选&0-25MHz&100Mbit/s&25Mbit/s \\
+    长度&32mm&32mm&32mm+\\
+    \hline
+    厚度&1.4mm&2.1mm&2.1mm\\
+    \hline
+    SPI传输模式&可选&支持&支持\\
+    \hline
+    一位传输模式&是&是&是\\
+    \hline
+    四位传输模式&否&可选&可选\\
+    \hline
+    时钟频率&0-20MHz&0-25MHz&0-25MHz\\
+    \hline
+    最高传输率&20Mbit/s&100Mbit/s&100Mbit/s\\
+    \hline
+    最高SPI传输率&20Mbit/s&25Mbit/s&25Mbit/s\\
     \hline
   \end{tabular}
+  \caption{卡对比表}
+\end{table}
 
-SD卡内部有7个寄存器,如下表1所示.其中OCR,CID,CSD和SCR寄存器保存卡的配置信息;RCA寄存器保存着通信过程中卡当前暂时分配的地址(只适合SD模式);卡状态(Card Status)和SD状态(SD Status)寄存器保存着卡的状态(例如,是否写成功,通信的CRC校验是否正确等),这两个寄存器的内容与通信模式(SD模式或SPI模式)相关.MMC卡没有SCR和SD Status寄存器.
-
+SD卡内部有7个寄存器,如表6-2所示.其中OCR,CID,CSD和SCR寄存器保存卡的配置信息;RCA寄存器保存着通信过程中卡当前暂时分配的地址(只适合SD模式);卡状态(Card Status)和SD状态(SD Status)寄存器保存着卡的状态(例如,是否写成功,通信的CRC校验是否正确等),这两个寄存器的内容与通信模式(SD模式或SPI模式)相关.MMC卡没有SCR和SD Status寄存器.\\
+\begin{table}
+    \centering
 \begin{tabular}{|c|c|c|}    
 
     \hline
-    名字 & CID & RCA & DSR & SCR & OCR &SSR &CSR \\
+    名字	&宽度	&描述\\
     \hline
-    宽度 & 128 & 16 & 16 & 128 & 64 & 32 & 512 & 32 \\
+    CID	&128	&卡识别号，每张卡都有的唯一识别号\\
     \hline
-    卡识别号，每张卡都有的唯一识别号 & 发布卡的地址，卡的局部系统地址，在初始化过程中，由主机和卡动态支持 & 驱动级寄存器，配置卡的驱动输出 &
-    卡的协议数据，关于卡的操作状态数据 & 卡配置寄存器，关于卡特性容量的信息 & 操作状态寄存器&
-    SD状态，有关卡拥有的特性信息 & 卡状态，有关卡状态的信息 \\
+    RCA	&16	&发布卡的地址，卡的局部系统地址，在初始化过程中，由主机和卡动态支持\\
+    \hline
+    DSR	&16&	驱动级寄存器，配置卡的驱动输出\\
+    \hline
+    CSD	&128&	卡的协议数据，关于卡的操作状态数据\\
+    \hline
+    SCR	&64	&卡配置寄存器，关于卡特性容量的信息\\
+    \hline
+    OCR	&32	&操作状态寄存器\\
+    \hline
+    SSR	&512&	SD状态，有关卡拥有的特性信息\\
+    \hline
+    CSR	&32	&卡状态，有关卡状态的信息\\
     \hline
 \end{tabular}
+\caption{卡寄存器表}
+\end{table}
+OCR寄存器保存着SD/MMC卡的供电电允许范围.如表6-3所示:如果OCR寄存器的某位为1，表示卡支持该位对应的电压。最后一位表示卡上电后的状态(是否处于”忙状态”)，如果该位为0，表示忙，如果为1，表示处于空闲状态(MMC/SD协议P60)。\\
 
-OCR寄存器保存着SD/MMC卡的供电电允许范围.如下表2所示:如果OCR寄存器的某位为1，表示卡支持该位对应的电压。最后一位表示卡上电后的状态(是否处于”忙状态”)，如果该位为0，表示忙，如果为1，表示处于空闲状态(MMC/SD协议P60)。
-
-
+\begin{table}
+    \centering
 \begin{tabular}{|c|c|}
     \hline
-    OCR~bit~position&0-3&4&5&6&7&8&9&10&11&12&13&14&15&16&17&18&19&20&21&22&23&24-30&31\\
-    \hline
-    VDD~votage~window & Reserved & 1.6-1.7 & 1.7-1.8 & 1.8-1.9 & 1.9-2.0 & 2.0-2.1 & 2.1-2.2 & 2.2-2.3 &
-    2.3-2.4 & 2.4-2.5 & 2.5-2.6 & 2.6-2.7 & 2.7-2.8 & 2.8-2.9 & 2.9-3.0 & 3.0-3.1 & 3.1-3.2 &
-    3.2-3.3 & 3.3-3.4 & 3.4-3.5 & 3.5-3.6 & Reserved & Card~power~up~status~bit~(busy)1 \\
-    \hline
+OCR~bit~position&VDD~votage~window\\
+\hline
+0-3	&Reserved\\
+\hline
+4	&1.6-1.7\\
+\hline
+5	&1.7-1.8\\
+\hline
+6	&1.8-1.9\\
+\hline
+7	&1.9-2.0\\
+\hline
+8	&2.0-2.1\\
+\hline
+9	&2.1-2.2\\
+\hline
+10	&2.2-2.3\\
+\hline
+11	&2.3-2.4\\
+\hline
+12	&2.4-2.5\\
+\hline
+13	&2.5-2.6\\
+\hline
+14	&2.6-2.7\\
+\hline
+15	&2.7-2.8\\
+\hline
+16	&2.8-2.9\\
+\hline
+17	&2.9-3.0\\
+\hline
+18	&3.0-3.1\\
+\hline
+19	&3.1-3.2\\
+\hline
+20	&3.2-3.3\\
+\hline
+21	&3.3-3.4\\
+\hline
+22	&3.4-3.5\\
+\hline
+23	&3.5-3.6\\
+\hline
+24-30	&Reserved\\
+\hline
+31	&Card~power~up~status~bit~(busy)1\\
+\hline
 \end{tabular}
+\caption{电平-比特位表}
+\end{table}
 
-CID为一个16个字节的寄存器，该寄存器包含一个独特的卡标识号。如下表所示：
+CID为一个16个字节的寄存器，该寄存器包含一个独特的卡标识号。如表6-4所示。
 
-
+\begin{table}
+    \centering
 \begin{tabular}{|c|c|c|c|}
     \hline
-    Name&Manufacturer~ID&OEM/Application~ID&Product~name&Product~Revision&Product~Serial~Number&Reserved&Manufacturing~Date&CRC7~Checksum&not~used,~always~"T"\\
+    Name	            &Field	&Width	&CID-slice\\
     \hline
-Field&
-MID&
-OID&
-PNM&
-PRV&
-PSN&
-...&
-MDT&
-CRC&
--\\
+    Manufacturer~ID	    &MID     &8	    &[127:120]\\
     \hline
-    Width&
-8&
-18&
-40&
-8&
-32&
-4&
-12&
-7&
-1\\
+    OEM/Application~ID	&OID     &18	    &[119:104]\\
     \hline
-CID-slice&
-[127:120]&
-[119:104]&
-[103:64]&
-[83:56]&
-[55:24]&
-[23:20]&
-[19:8]&
-[7:1]&
-[0:0]\\
+    Product~name	    &PNM	    &40	    &[103:64]\\
+    \hline
+    Product~Revision	&PRV     &8	    &[83:56]\\
+    \hline
+    Product~serial~number	&PSN &32	    &[55:24]\\
+    \hline
+    Reserved	        &...	    &4	    &[23:20]\\
+    \hline
+    Manufacturing~Date	&MDT     &12	    &[19:8]\\
+    \hline
+    CRC7~Checksum	    &CRC	    &7	    &[7:1]\\
+    \hline
+    not~used,~always~"T"&-	    &1	    &[0:0]\\
     \hline
 \end{tabular}
+\caption{卡识别号表}
+\end{table}
 
 SD/SDIO有以下几种传输模式：
 （1）SPI mode，独立序列输入和独立序列输出，使⽤CS、DI、SCLK与DO（SD卡的片选、数据输入、
@@ -124,7 +185,7 @@ K210 裸机使用SD卡，下图是SD卡对应接口
 \begin{figure}[H]
     \centering
     \includegraphics{figures/06-02-接口标.png}
-    \caption{6-2-2. SD卡与K210接口}
+    \caption{SD卡与K210接口}
 \end{figure}
 
 为了协同软硬接口，我们需要在代码中定义相关常量，使软硬接口保持一致，这即为遵守SD卡协议。
@@ -221,21 +282,21 @@ SD卡工作流程大致可以分为3个大的步骤：初始化sd卡、写sd卡�
 
 在复位后，查找总线上的新卡的时候，主机会处于“卡识别模式”。卡在复位后会处于识别模式。不同的SD卡可能支持不同版本的协议或者不同的⼯作电压。因此，作为主机，在与SD卡进行交互之初，主机需要获取卡的工作电压范围和卡的类型。在卡识别期间，时钟频率应该保持在100~400kHZ之间。
 
-1_在主机和SD卡进行任何通信之前，主机不知道SD卡支持的工作电压范围，卡也不知道是否支持主机当前提供的电压。因此主机首先使用默认的电压发送一条reset指令(CMD0)。
+1.在主机和SD卡进行任何通信之前，主机不知道SD卡支持的工作电压范围，卡也不知道是否支持主机当前提供的电压。因此主机首先使用默认的电压发送一条reset指令(CMD0)。
 
-2_为了验证SD卡的接口操作状态，主机发送SEND_IF_COND(CMD8),用于取得SD卡支持工作的电压范围数据。SD卡通过检测CMD8的参数部分来检查主机使用的工作电压，主机通过分析回传的CMD8参数部分来校验SD卡是否可以在所给电压下工作，如果SD卡可以在指定电压下工作，则它回送CMD8的命令响应字 。如果不支持所给电压，则SD卡不会给出任何响应信息，并继续处于IDLE状态。
+2.为了验证SD卡的接口操作状态，主机发送SEND_IF_COND(CMD8),用于取得SD卡支持工作的电压范围数据。SD卡通过检测CMD8的参数部分来检查主机使用的工作电压，主机通过分析回传的CMD8参数部分来校验SD卡是否可以在所给电压下工作，如果SD卡可以在指定电压下工作，则它回送CMD8的命令响应字 。如果不支持所给电压，则SD卡不会给出任何响应信息，并继续处于IDLE状态。
 
-3_在发送ACMD41命令初始化高容量的SD卡前，需要强制发送CMD8命令。强制低电压主机在发送CMD8前发送ACMD41，万一双重电压SD卡没有收到CMD8命令且工作在高电压状态，在这种情况下，低电压主机不能不发送CMD8命令给卡，则收到ACMD41后进入无活动状态。
+3.在发送ACMD41命令初始化高容量的SD卡前，需要强制发送CMD8命令。强制低电压主机在发送CMD8前发送ACMD41，万一双重电压SD卡没有收到CMD8命令且工作在高电压状态，在这种情况下，低电压主机不能不发送CMD8命令给卡，则收到ACMD41后进入无活动状态。
 
-4_SD_SEND_OP_COND(ACMD)命令是为SD卡主机识别卡或者电压不匹配时拒绝卡的机制设计的。主机发送命令操作数代表要求的电压窗口大小。如果SD卡在所给的范围内不能实现数据传输，将放弃下一步的总线操作而进入无活动。操作状态寄存器也将被定义。
+4.SD_SEND_OP_COND(ACMD)命令是为SD卡主机识别卡或者电压不匹配时拒绝卡的机制设计的。主机发送命令操作数代表要求的电压窗口大小。如果SD卡在所给的范围内不能实现数据传输，将放弃下一步的总线操作而进入无活动。操作状态寄存器也将被定义。
 
-5_在主机发出复位命令(CMD0)后，主机将先发送CMD8再发送ACMD41命令重新初始化SD卡。
+5.在主机发出复位命令(CMD0)后，主机将先发送CMD8再发送ACMD41命令重新初始化SD卡。
 
 当总线被激合后，主机就开始卡的初始化和识别3处理。初始化处理设置它的操作状态和是设置OCR中的HCS比特命令SD_SEND_OP_COND(ACMD41)开始。HCS比特位被设置为1表示主机支持高容量SD卡。HCS被设置为0表示主机不支持高容量SD卡。卡的初始化和识别流程见下图。
 \begin{figure}[H]
     \centering
     \includegraphics{figures/06-02-初始化.png}
-    \caption{6-2-4. 卡初始化和识别流程}
+    \caption{卡初始化和识别流程}
 \end{figure}
 （注：这里不推荐使用NPUCore或rCore作为代码范式来讲解，应直接看SD卡协议文档）
 
@@ -243,14 +304,14 @@ SD卡工作流程大致可以分为3个大的步骤：初始化sd卡、写sd卡�
 \begin{figure}[H]
     \centering
     \includegraphics{figures/06-02-数据传输.png}
-    \caption{6-2-5. 卡数据传输模式流程}
+    \caption{卡数据传输模式流程}
 \end{figure}
 
-1CMD7命令用来选择某个SD卡，使其进入Transfer状态，在指定时间段内，只有一个卡能处于Transfer状态。当某个先前被选中的处于Transfer状态的SD卡接收到CMD7之后，会释放与控制器的连接，并进入Stand-by态。当CMD7使用保留地址0x0000时，所有的SD卡都会进入Stand-by状态 。
+1.CMD7命令用来选择某个SD卡，使其进入Transfer状态，在指定时间段内，只有一个卡能处于Transfer状态。当某个先前被选中的处于Transfer状态的SD卡接收到CMD7之后，会释放与控制器的连接，并进入Stand-by态。当CMD7使用保留地址0x0000时，所有的SD卡都会进入Stand-by状态 。
 
 
-2所有的数据读命令都可以被停止命令(CMD12)在任意时刻终止。数据传输会终止，SD卡返回Transfer状态。读命令有：块读操作(CMD17)、多块读操作(CMD18)、发送写保护(CMD30)、发送scr(ACMD51)以及读模式下的普通命令(CMD56)。
+2.所有的数据读命令都可以被停止命令(CMD12)在任意时刻终止。数据传输会终止，SD卡返回Transfer状态。读命令有：块读操作(CMD17)、多块读操作(CMD18)、发送写保护(CMD30)、发送scr(ACMD51)以及读模式下的普通命令(CMD56)。
 
-3所有的数据写命令都可以被停止命令(CMD12)在任意时刻终止。写命令也会在取消选择命令(CMD7)之前停止。写命令有：块写操作(CMD24，CMD25)、编程命令(CMD27)、锁定/解锁命令(CMD42)以及写模式下的普通命令(CMD56)。
+3.所有的数据写命令都可以被停止命令(CMD12)在任意时刻终止。写命令也会在取消选择命令(CMD7)之前停止。写命令有：块写操作(CMD24，CMD25)、编程命令(CMD27)、锁定/解锁命令(CMD42)以及写模式下的普通命令(CMD56)。
 
-4数据传输一旦完成，SD卡会退出数据写状态，进入Programming状态(传输成功)或者Transfer状态(传输失败)。
+4.数据传输一旦完成，SD卡会退出数据写状态，进入Programming状态(传输成功)或者Transfer状态(传输失败)。
