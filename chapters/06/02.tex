@@ -10,7 +10,8 @@ MMC：MMC就是MultiMediaCard的缩写，即多媒体卡。它是一种非易失
 SD：SD卡为Secure Digital Memory Card, 即安全数码卡。它在MMC的基础上发展而来，增加了两个主要特色：SD卡强调数据的安全安全，可以设定所储存的使用权限，防止数据被他人复制;另外一个特色就是传输速度比2.11版的MMC卡快。在数据传输和物理规范上，SD卡(24mm*32mm*2.1mm,比MMC卡更厚一点)，向前兼容了MMC卡.所有支持SD卡的设备也支持MMC卡。SD卡和2.11版的MMC卡完全兼容。
 \begin{figure}[H]
     \centering
-    \includegraphics{figures/06-02-SD.jpg}
+    \scalebox{0.5}{\includegraphics{figures/06-02-SD.jpg}}
+    \caption{6-2-1. SD卡内部结构}
 \end{figure}
 
 SD卡内部结构如上图所示
@@ -25,7 +26,9 @@ MCI：MCI是Multimedia Card Interface的简称，即多媒体卡接口。上述�
 
 1.5.MMC/SD/SDIO卡的区别
 
-\begin{tabular}{|c|c|c|c|}[caption={表1}]
+
+\begin{tabular}{|c|c|c|c|}
+    
     \hline
     卡属性&引脚个数&宽度&长度&厚度&SPI传输模式&1位传输模式&时钟频率&最高传输率&最高SPI传输率\\
     \hline
@@ -39,7 +42,8 @@ MCI：MCI是Multimedia Card Interface的简称，即多媒体卡接口。上述�
 
 SD卡内部有7个寄存器,如下表1所示.其中OCR,CID,CSD和SCR寄存器保存卡的配置信息;RCA寄存器保存着通信过程中卡当前暂时分配的地址(只适合SD模式);卡状态(Card Status)和SD状态(SD Status)寄存器保存着卡的状态(例如,是否写成功,通信的CRC校验是否正确等),这两个寄存器的内容与通信模式(SD模式或SPI模式)相关.MMC卡没有SCR和SD Status寄存器.
 
-\begin{tabular}{|c|c|c|}[caption={表2}]
+\begin{tabular}{|c|c|c|}    
+
     \hline
     名字 & CID & RCA & DSR & SCR & OCR &SSR &CSR \\
     \hline
@@ -54,7 +58,7 @@ SD卡内部有7个寄存器,如下表1所示.其中OCR,CID,CSD和SCR寄存器保
 OCR寄存器保存着SD/MMC卡的供电电允许范围.如下表2所示:如果OCR寄存器的某位为1，表示卡支持该位对应的电压。最后一位表示卡上电后的状态(是否处于”忙状态”)，如果该位为0，表示忙，如果为1，表示处于空闲状态(MMC/SD协议P60)。
 
 
-\begin{tabular}{|c|c|}[caption={表3}]
+\begin{tabular}{|c|c|}
     \hline
     OCR~bit~position&0-3&4&5&6&7&8&9&10&11&12&13&14&15&16&17&18&19&20&21&22&23&24-30&31\\
     \hline
@@ -64,9 +68,10 @@ OCR寄存器保存着SD/MMC卡的供电电允许范围.如下表2所示:如果OC
     \hline
 \end{tabular}
 
-CID为一个16个字节的寄存器，该寄存器包含一个独特的卡标识号。如下表4所示：
+CID为一个16个字节的寄存器，该寄存器包含一个独特的卡标识号。如下表所示：
 
-\begin{tabular}{|c|c|c|c|}[caption={表4}]
+
+\begin{tabular}{|c|c|c|c|}
     \hline
     Name&Manufacturer~ID&OEM/Application~ID&Product~name&Product~Revision&Product~Serial~Number&Reserved&Manufacturing~Date&CRC7~Checksum&not~used,~always~"T"\\
     \hline
@@ -119,6 +124,7 @@ K210 裸机使用SD卡，下图是SD卡对应接口
 \begin{figure}[H]
     \centering
     \includegraphics{figures/06-02-接口标.png}
+    \caption{6-2-2. SD卡与K210接口}
 \end{figure}
 
 为了协同软硬接口，我们需要在代码中定义相关常量，使软硬接口保持一致，这即为遵守SD卡协议。
@@ -210,6 +216,7 @@ SD卡工作流程大致可以分为3个大的步骤：初始化sd卡、写sd卡�
 \begin{figure}[H]
     \centering
     \includegraphics{figures/06-02-命令流程.png}
+    \caption{6-2-3. 卡识别模式命令流程}
 \end{figure}
 
 在复位后，查找总线上的新卡的时候，主机会处于“卡识别模式”。卡在复位后会处于识别模式。不同的SD卡可能支持不同版本的协议或者不同的⼯作电压。因此，作为主机，在与SD卡进行交互之初，主机需要获取卡的工作电压范围和卡的类型。在卡识别期间，时钟频率应该保持在100~400kHZ之间。
@@ -228,6 +235,7 @@ SD卡工作流程大致可以分为3个大的步骤：初始化sd卡、写sd卡�
 \begin{figure}[H]
     \centering
     \includegraphics{figures/06-02-初始化.png}
+    \caption{6-2-4. 卡初始化和识别流程}
 \end{figure}
 （注：这里不推荐使用NPUCore或rCore作为代码范式来讲解，应直接看SD卡协议文档）
 
@@ -235,6 +243,7 @@ SD卡工作流程大致可以分为3个大的步骤：初始化sd卡、写sd卡�
 \begin{figure}[H]
     \centering
     \includegraphics{figures/06-02-数据传输.png}
+    \caption{6-2-5. 卡数据传输模式流程}
 \end{figure}
 
 1CMD7命令用来选择某个SD卡，使其进入Transfer状态，在指定时间段内，只有一个卡能处于Transfer状态。当某个先前被选中的处于Transfer状态的SD卡接收到CMD7之后，会释放与控制器的连接，并进入Stand-by态。当CMD7使用保留地址0x0000时，所有的SD卡都会进入Stand-by状态 。
