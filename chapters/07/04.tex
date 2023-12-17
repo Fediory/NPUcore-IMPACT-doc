@@ -21,7 +21,7 @@ Linux ext2文件系统，上图为磁盘文件系统图（内核内存映像肯�
 \begin{figure}[H]
     \centering
     \includegraphics{figures/07-04-inode.png}
-    \caption{ext2 block布局}
+    \caption{block布局}
 \end{figure}
 由上图可知，文件系统的开头通常是由一个磁盘扇区所组成的引导块，该部分的主要目的是用于对操作系统的引导。一般只在启动操作系统时使用。
 随后是超级块，超级块主要存放了该物理磁盘中文件系统结构的相关信息，并且对各个部分的大小进行说明。
