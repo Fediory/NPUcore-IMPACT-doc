@@ -223,7 +223,7 @@ fstatat和fstat的函数原型如下：
 从参数可以看出，statat可以按照路劲访问文件信息，而fstat则只能通过进程的文件描述符表访问。这是两者的主要区别。
 对于fstat，首先进行的是获取当前进程信息以及解析路径：
 
-\begin{lstlisting}[language={Rust}, label={code:fstatat_part1},
+\begin{lstlisting}[language={Rust}, label={code:fstatat part1},
 	caption={fstatat_part1}]
     let token = current_user_token();
 let path = match translated_str(token, path) {
@@ -249,7 +249,7 @@ let task = current_task().unwrap();
 
 flags这里只是进行了解析，但是在之后实现中没有涉及，这里也不过多叙述。在这里获取了当前运行的进程，并且将切片类型的path映射到当前地址空间，并且转换成string类型。
 
-\begin{lstlisting}[language={Rust}, label={code:fstatat_part2},
+\begin{lstlisting}[language={Rust}, label={code:fstatat part2},
 	caption={fstatat_part2}]
 let file_descriptor = match dirfd {
 	AT_FDCWD => task.fs.lock().working_inode.as_ref().clone(),
