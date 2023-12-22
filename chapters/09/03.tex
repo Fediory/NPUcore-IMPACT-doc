@@ -1,1 +1,36 @@
 \section{支持BusyBox所需系统调用}
+\subsection{获取系统调用相关信息}
+Posix规范规定了一系列的系统调用，linux提供了查看系统调用相关信息的命令，如下所示：
+\begin{lstlisting}[language=bash]
+    man 2 open 
+\end{lstlisting}
+可以查看open系统调用的相关信息，如下所示：
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.8\textwidth]{figures/09-03-open系统调用示意图.jpg}
+  \caption{open系统调用相关信息}
+  \label{fig:open_syscall}
+\end{figure}
+每个man手册页面都有类似的结构，由以下部分组成
+\begin{itemize}
+    \item NAME：命令的名称和简短描述
+    \item SYNOPSIS：命令的语法和选项 初步描述了命令的基本用法
+    \item DESCRIPTION：命令的详细描述和用法
+    \item OPTIONS：命令的选项和参数
+    \item EXAMPLES：使用命令的示例
+    \item FILES：命令可能使用的文件
+    \item SEE ALSO：相关命令和手册页面
+    \item BUGS：已知的命令错误和限制
+    \item AUTHOR：命令的作者和贡献者
+\end{itemize}
+通过在文档中找到我们想要的规范信息，我们可以知道实现系统调用的细节规范，如报错类型，返回类型，接口参数等。
+
+接下来，我们以open系统调用为例，来看看如何实现系统调用。
+第一步，需要从linux man page中找到open系统调用的系统调用号和函数签名，并将其如下所示：
+
+第二步，分析该系统调用设计的模块，具体而言是需要实现的功能与内核的哪一个部分关联，例如内存映射、进程管理、进程通信、线程相关等。
+之后，分析具体实现的框架，也就是做那些操作，我们需要的函数接口是哪些，从而可以得出一个实现的伪代码。
+
+最后，在代码实现上，关注手册中的细节，例如可能出现的错误信息，对于特殊情况的处理。
+
+如此，我们就完整的实现了一个系统调用。类似的对于其他的系统调用，我们都可以类似的实现。
