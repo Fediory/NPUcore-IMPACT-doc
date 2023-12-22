@@ -1,0 +1,8 @@
+\subsection{munmap}
+
+\subsubsection{munmap用途与实现}
+munmap执行与mmap相反的操作，也就是删除用户空间与内核空间的映射。
+
+munmap会通过用户传入的地址信息删除页表中的有关映射，并将在mmap中新插入的Maparea删除。
+
+因大部分内容已在mmap介绍过，这里不做赘述。
