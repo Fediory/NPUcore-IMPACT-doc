@@ -37,7 +37,7 @@ UNIX网络编程第二卷进程间通信对mmap函数进行了说明。该函数
 \textbf{用户空间}
 
 mmap会申请一块适合的虚拟内存作为待映射的用户空间
-\begin{lstlisting}[language={Rust}, label={code:new_area},
+\begin{lstlisting}[language={Rust},
 	caption={os/src/mm/memory_set.rs}]
 let area: &mut MapArea = &mut self.areas[idx];
 let start_va = area.inner.vpn_range.get_end()
@@ -62,7 +62,7 @@ MapArea是一个描述虚拟地址的结构体，它指向某块用户空间的�
 \textbf{内核空间}
 
 mmap获取待映射的内核空间是通过进程打开的文件描述符获取的
-\begin{lstlisting}[language={Rust}, label={code:new_area},
+\begin{lstlisting}[language={Rust},
 	caption={os/src/mm/memory_set.rs}]
 let fd_table = task.files.lock();
 match fd_table.get_ref(fd) {

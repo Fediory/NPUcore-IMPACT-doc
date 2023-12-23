@@ -10,7 +10,6 @@
 	caption={os/src/syscall/fs.rs}]
     pub fn sys_fstat(fd: usize, statbuf: *mut u8);
 \end{lstlisting}
-\\
 参数解释：\\
 fd：文件描述符（file descriptor），是一个非负整数，用于唯一标识打开的文件。\\
 statbuf：一个指向stat结构的指针，用于接收文件详细信息（指向内容如代码片段9.20）。\\
