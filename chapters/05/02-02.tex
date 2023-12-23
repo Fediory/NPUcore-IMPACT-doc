@@ -145,7 +145,7 @@ clone()
 从linux 2.3.3开始，glibc的`fork()`封装作为NPTL(Native POSIX Threads Library)线程实现的一部分。直接调用`fork()`等效于调用[clone(2)](https://man7.org/linux/man-pages/man2/clone.2.html)时仅指定`flags`为`SIGCHLD`(共享信号句柄表)。
 
 创建线程的函数`pthread_create`内部使用的也是clone函数。在glibc的`/sysdeps/unix/sysv/linux/createthread.c`源码中可以看到，创建线程的函数`create_thread`中使用了clone函数，并指定了相关的`flags`：
-\begin{lstlisting}[language={Rust}, label={code:forktest},
+\begin{lstlisting}[language={Rust},
     caption={FLAGS设置}]
     const int clone_flags = (CLONE_VM | CLONE_FS 
     | CLONE_FILES | CLONE_SYSVSEM 
@@ -194,7 +194,7 @@ flags:
   \end{lstlisting}
 CloneFlags
 CloneFlags 用来指定 clone 系统调用的行为，npucore的 CloneFlags 中有如下几种值
-\begin{lstlisting}[language={Rust}, label={code:forktest},
+\begin{lstlisting}[language={Rust}, 
     caption={CloneFlags}]
     bitflags! {
         pub struct CloneFlags: u32 {
@@ -246,7 +246,7 @@ tid：
 CLONE_SETTLS
 将TLS(Thread Local Storage)保存到 tls 字段中。
 npucore中clone的具体实现
-\begin{lstlisting}[language={Rust}, label={code:forktest},
+\begin{lstlisting}[language={Rust}, 
     caption={clone的具体实现}]
     let child = parent.sys_clone(flags, stack, tls, exit_signal);
   \end{lstlisting}
@@ -258,7 +258,7 @@ parent（也就是clone的调用者）的sys_clone，它返回新创建的进程
 一份内存空间的拷贝中。
 如果有 CLONE_THREAD ，子线程会放到与调用进程相同的线程组中。当一个 clone 调用没有指定
 CLONE_THREAD 时，生成的线程会放到一个新的线程组中，其TGID等于该线程的TID
-\begin{lstlisting}[language={Rust}, label={code:forktest},
+\begin{lstlisting}[language={Rust}, 
     caption={CLONE_THREAD的实现}]
     let memory_set = if flags.contains(CloneFlags::CLONE_VM) {
         self.vm.clone()
@@ -282,7 +282,7 @@ CLONE_THREAD 时，生成的线程会放到一个新的线程组中，其TGID等
   \end{lstlisting}
 接着clone会像操作系统申请pid，tid，tgid和内核栈，因为npucore模仿了linux的“以轻量级进程代替
 线程”，所以这里的pid与tid相同，为线程号，而tgid代表该进程的进程号
-\begin{lstlisting}[language={Rust}, label={code:forktest},
+\begin{lstlisting}[language={Rust},
     caption={线程号设置}]
     // alloc a pid and a kernel stack in kernel space
     let pid_handle = pid_alloc();
@@ -297,7 +297,7 @@ CLONE_THREAD 时，生成的线程会放到一个新的线程组中，其TGID等
     
   \end{lstlisting}
 然后clone会进行新进程TCB的构造
-\begin{lstlisting}[language={Rust}, label={code:forktest},
+\begin{lstlisting}[language={Rust}, 
     caption={进程TCB的构造}]
     let task_control_block = Arc::new(TaskControlBlock {
         pid: pid_handle,
@@ -375,7 +375,7 @@ semadj 值，并且仅当共享列表的最后一个进程终止（或使用unsh
 semaphore adjustments。如果没有设置该标志，则子进程会有一个独立的 semadj 列表，且初始为
 空。
 与信号量操作有关。
-\begin{lstlisting}[language={Rust}, label={code:forktest},
+\begin{lstlisting}[language={Rust}, 
     caption={信号量操作}]
     files: if flags.contains(CloneFlags::CLONE_FILES) {
         self.files.clone()
@@ -407,7 +407,7 @@ semaphore adjustments。如果没有设置该标志，则子进程会有一个�
   \end{lstlisting}
 这里会修改父进程的子进程表，如果设置了 CLONE_PARENT 或 CLONE_THREAD 则代表新建进程与调用进
 程是兄弟关系，反之则调用进程是新建进程的父进程
-\begin{lstlisting}[language={Rust}, label={code:forktest},
+\begin{lstlisting}[language={Rust}, 
     caption={修改父进程的子进程表}]
     // add child
     if flags.contains(CloneFlags::CLONE_PARENT) || flags.contains(CloneFlags::CLONE_THREAD) {
@@ -424,7 +424,7 @@ semaphore adjustments。如果没有设置该标志，则子进程会有一个�
     }
   \end{lstlisting}
 最后， clone 会设置新进程的上下文以及tls并返回
-\begin{lstlisting}[language={Rust}, label={code:forktest},
+\begin{lstlisting}[language={Rust}, 
     caption={设置新进程的上下文}]
     let trap_cx = task_control_block.acquire_inner_lock().get_trap_cx();
     if flags.contains(CloneFlags::CLONE_THREAD) {
