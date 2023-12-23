@@ -9,9 +9,9 @@ pub fn sys_openat(dirfd: usize, path: *const u8, flags: u32, mode: u32) -> isize
 \end{lstlisting}
 解释如下：
 \begin{itemize}
-    \item fd 表示文件描述符，一般通过open函数的返回值获得，对当前任务队列的活跃文件进行唯一标识
-    \item buf 表示写入数据的缓冲区的指针
-    \item count 表示要写入的字节数,和buf参数一起可以表示写入数据的全部内容
+    \item fd 表示文件描述符，一般通过open函数的返回值获得，对当前任务队列的活跃文件进行唯一标识。
+    \item buf 表示写入数据的缓冲区的指针。
+    \item count 表示要写入的字节数,和buf参数一起可以表示写入数据的全部内容。
 \end{itemize}
 \subsubsection{整体流程}
 流程图展示如下：
@@ -22,13 +22,13 @@ pub fn sys_openat(dirfd: usize, path: *const u8, flags: u32, mode: u32) -> isize
 \end{figure}
 
 \subsubsection{代码详析}
-1、函数输入参数展示如下
+1、函数输入参数展示如下：
 \begin{lstlisting}[language={Rust},
     caption={write的参数与返回值}]
     pub fn sys_write(fd: usize, buf: usize, count: usize) -> isize
 \end{lstlisting}
 
-2、获取TCB信息并通过get_ref函数和得到的文件描述符表fd_table，将参数fd转化成包含文件信息的文件描述符结构体指针file_descriptor
+2、获取TCB信息并通过get_ref函数和得到的文件描述符表fd_table，将参数fd转化成包含文件信息的文件描述符结构体指针file_descriptor。
 \begin{lstlisting}[language={Rust},
     caption={含有文件信息文件描述符指针的获取}]
     let task = current_task().unwrap();
@@ -39,7 +39,7 @@ pub fn sys_openat(dirfd: usize, path: *const u8, flags: u32, mode: u32) -> isize
     };
 \end{lstlisting}
 
-3、判断文件是否可写，如果不可写则返回EBADF（Bad file number，值为-9）
+3、判断文件是否可写，如果不可写则返回EBADF。（Bad file number，值为-9）
 \begin{lstlisting}[language={Rust},
     caption={文件权限判断}]
     if !file_descriptor.writable() {
@@ -47,7 +47,7 @@ pub fn sys_openat(dirfd: usize, path: *const u8, flags: u32, mode: u32) -> isize
     }
 \end{lstlisting}
 
-4、获取用户空间令牌，用于下文缓冲区数据的获取
+4、获取用户空间令牌，用于下文缓冲区数据的获取。
 
 \begin{lstlisting}[
     language={Rust},
@@ -57,8 +57,8 @@ let token = task.get_user_token();
     
 \end{lstlisting}
 
-5、通过调用write_user函数，将用户空间数据写入文件描述符对应的文件中
-write_user有两个参数
+5、通过调用write_user函数，将用户空间数据写入文件描述符对应的文件中。
+write_user有两个参数：
 \begin{lstlisting}[
     language={Rust},
     caption={write_user参数}
@@ -66,10 +66,10 @@ write_user有两个参数
 fn write_user(&self, offset: Option<usize>, buf: UserBuffer) -> usize
 \end{lstlisting}
 \begin{itemize}
-    \item offset 表示用户指定的固定偏移量（相对于文件开始位置的偏移），不受文件指针偏移的影响.
-    \item buf 表示一个UserBuffer结构体，其内部信息通过translated_byte_buffer函数获得
+    \item offset 表示用户指定的固定偏移量（相对于文件开始位置的偏移），不受文件指针偏移的影响。
+    \item buf 表示一个UserBuffer结构体，其内部信息通过translated_byte_buffer函数获得。
 \end{itemize}
-    UserBuffer结构体内容如下，包括一个表示数据具体内容的Vec<\&mut[u8]> 和表示长度的len
+    UserBuffer结构体内容如下，包括一个表示数据具体内容的Vec<\&mut[u8]> 和表示长度的len。
 \begin{lstlisting}[
     language={Rust},
     caption={UserBuffer结构体}
@@ -86,7 +86,7 @@ pub struct UserBuffer {
     
 \end{lstlisting}
 
-translated_byte_buffer函数接受三个参数，用户空间令牌token，缓冲区指针ptr和缓冲区长度len，返回值为一个Result包裹的Vec<\&mut[u8]>变量
+translated_byte_buffer函数接受三个参数，用户空间令牌token，缓冲区指针ptr和缓冲区长度len，返回值为一个Result包裹的Vec<\&mut[u8]>变量。
 
 \begin{lstlisting}[
     language={Rust},
@@ -103,7 +103,7 @@ pub fn translated_byte_buffer(
 6、深入文件描述符的write_user函数，我们以OSInode的实现为例进行讲解。
 首先初始化写入总字节数变量total_write_size并获取文件的写锁。接下来分两种情况进行处理，
 如果偏移量不为None，则通过循环遍历用户缓冲区，调用self.inner.write_at_block_cache_lock函数
-分次将数据写入文件，同时确保实际写入的字节数与数据片段长度相等，并维护偏移量offset（指向下一个位置）和写入总字节数total_write_size
+分次将数据写入文件，同时确保实际写入的字节数与数据片段长度相等，并维护偏移量offset（指向下一个位置）和写入总字节数total_write_size。
 \begin{lstlisting}[
     language={Rust},
     caption={偏移量不为None}
@@ -141,15 +141,15 @@ None => {
     }
 }
 \end{lstlisting}
-7、我们继续深入，来分析write的块级实现write_at_block_cache_lock，它接受三个参数
+7、我们继续深入，来分析write的块级实现write_at_block_cache_lock，它接受三个参数：
 
 \begin{itemize}
-    \item inode_lock 表示文件的写锁
-    \item offset 表示写数据位置的偏移量，即写数据位置相对文件开始位置的偏移
-    \item buf 表示具体要写入文件的数据，类型为\&[u8]
+    \item inode_lock 表示文件的写锁。
+    \item offset 表示写数据位置的偏移量，即写数据位置相对文件开始位置的偏移。
+    \item buf 表示具体要写入文件的数据，类型为\&[u8]。
 \end{itemize}
 
-write_at_block_cache_lock函数首先通过获得的偏移量的信息来判断是否需要进行空间的扩展，如果diff_len大于0，则调用modify_size_lock扩展diff_len大小的空间（分配新簇）
+write_at_block_cache_lock函数首先通过获得的偏移量的信息来判断是否需要进行空间的扩展，如果diff_len大于0，则调用modify_size_lock扩展diff_len大小的空间。（分配新簇）
 \begin{lstlisting}[
     language={Rust},
     caption={判断是否进行空间扩展分配}
