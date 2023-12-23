@@ -274,12 +274,12 @@ stext = .;
 
 在完成上文所述的设置stvec寄存器跳转地址后，我们将完成后续步骤：
 
-\begin{itemize}
+\begin{enumerate}
     \item 通过 __alltraps 将 Trap 上下文保存在内核栈上。
     \item 跳转到使用 Rust 编写的 trap_handler 函数完成 Trap 分发及处理。
     \item 当 trap_handler 返回之后，使用 __restore 从保存在内核栈上的 Trap 上下文恢复寄存器。
     \item 最后通过一条 sret 指令回到应用程序执行。
-\end{itemize}
+\end{enumerate}
 
 本节重点讲解其中的第二点，追踪NPUcore中trap_handler函数的具体实现流程并了解其核心思想。
 由于该函数过长，这里只选取其中有关系统调用的部分进行讲解，见\autoref{code:trap handler}。
@@ -389,3 +389,193 @@ pub fn trap_return() -> ! {
     i-cache 中可能还保存着该物理页帧的错误快照。因此我们直接将整个 i-cache 清空避免错误。
     接着使用 jr 指令完成了跳转到 __restore 的任务。
 \end{itemize}
+
+\subsection{利用汇编实现上下文保存与恢复}
+
+再回顾一下操作系统在S态对于系统调用的处理会经历的步骤：
+
+\begin{enumerate}
+    \item 通过 __alltraps 将 Trap 上下文保存在内核栈上。
+    \item 跳转到使用 Rust 编写的 trap_handler 函数完成 Trap 分发及处理。
+    \item 当 trap_handler 返回之后，使用 __restore 从保存在内核栈上的 Trap 上下文恢复寄存器。
+    \item 最后通过一条 sret 指令回到应用程序执行。
+\end{enumerate}
+
+上一小节介绍了第二步，这一小节来介绍剩余三步，均是通过汇编代码来实现的，故先介绍一下RISC-V汇编的基础知识。
+
+\subsubsection{RISC-V汇编基础知识}
+
+首先看一下RISC-V汇编常用指令，见\autoref{tab:RISC-V汇编常用指令}。
+其中CSR寄存器，即Control and Status Register，控制与状态寄存器。
+
+\begin{table}[h]
+    \centering
+    \caption{RISC-V汇编常用指令}
+    \label{table:RISC-V汇编常用指令}
+    \begin{tabularx}{0.8\textwidth}{|p{1cm}|p{3cm}|X|}
+    \hline
+    \textbf{名称} & \textbf{格式} & \textbf{功能}                                      \\\hline
+    sd     & sd rs2, offset(rs1) & 把寄存器rs2的值存入地址为寄存器rs1的值加offset的主存中 \\\hline
+    ld     & ld rd, offset(rs1)  & 从地址为寄存器rs1的值加offset的主存中读取并存入rd      \\\hline
+    csrr   & csrr rd, csr        & 读取CSR寄存器的值                                    \\\hline
+    csrw   & csrw csr, rs        & 写入CSR寄存器                                       \\\hline
+    csrrw  & csrrw rd, csr, rs1  & 读取CSR的旧值，写入rd寄存器，同时将rs1的值写入CSR     \\\hline
+    jr     & jr rs               & 跳转到rs寄存器中的地址，并且不带返回值                \\\hline
+    \end{tabularx}
+\end{table}
+
+为了更好的调用汇编指令，宏操作是一个很有效的手段。
+.MACRO和.ENDM伪指令可以用来组成一个宏。.MACRO伪指令的格式如下
+
+\begin{lstlisting}[]
+.macro macname macargs ...
+\end{lstlisting}
+
+.MACRO伪指令后面依次是宏名称与宏的参数。
+在宏里使用参数，需要添加前缀\lstinline`\`。
+
+在正式编写函数前，声明了四个宏,作用分别是：
+保存整数寄存器，恢复整数寄存器，保存浮点寄存器，恢复浮点寄存器。
+见\autoref{code:riscv macro}。
+
+\begin{lstlisting}[language={riscv}, label={code:riscv macro},
+    caption={RISC-V宏}]
+.altmacro
+.macro SAVE_GP n
+    sd x\n, \n*8(sp)
+.endm
+.macro LOAD_GP n
+    ld x\n, \n*8(sp)
+.endm
+.macro SAVE_FP n, m
+    fsd f\n, \m*8(sp)
+.endm
+.macro LOAD_FP n, m
+    fld f\n, \m*8(sp)
+.endm
+\end{lstlisting}
+
+有了上述RISC-V汇编的基础知识，接下来正式开始讲解__alltraps与__restore。
+
+\subsubsection{保存上下文：__alltraps}
+
+\begin{lstlisting}[language={riscv}, label={code:alltraps},
+    caption={__alltraps}]
+__alltraps:
+    csrrw sp, sscratch, sp
+    # now sp->*TrapContext in user space, sscratch->user stack
+    sd x1, 1*8(sp)
+    # skip sp(x2), we will save it later
+    .set n, 3
+    .rept 29
+        SAVE_GP %n
+        .set n, n+1
+    .endr
+    .set n, 0
+    .set m, FP_START
+    .rept 32
+        SAVE_FP %n, %m
+        .set n, n+1
+        .set m, m+1
+    .endr
+    # we can use t0/t1/t2 freely, because they have been saved in TrapContext
+    csrr t0, fcsr
+    sd t0, 64*8(sp)
+    # save other general purpose registers
+    sd a0, 65*8(sp)
+    csrr t0, sstatus
+    csrr t1, sepc
+    sd t0, 66*8(sp)
+    sd t1, 0(sp)
+    # read user stack from sscratch and save it in TrapContext
+    csrr t2, sscratch
+    sd t2, 2*8(sp)
+    # load kernel_satp into t0
+    ld t0, 67*8(sp)
+    # load trap_handler into t1
+    ld t1, 68*8(sp)
+    # move to kernel_sp
+    ld sp, 69*8(sp)
+    # switch to kernel space
+    csrw satp, t0
+    sfence.vma
+    # jump to trap_handler
+    jr t1
+\end{lstlisting}
+
+第 2 行的 csrrw 原型是 \lstinline`csrrw rd, csr, rs`' 可以将 CSR 当前的值读到通用寄存器 rd 中，
+然后将通用寄存器 rs 的值写入该 CSR 。因此这里起到的是交换 sscratch 和 sp 的效果。
+在这一行之前 sp 指向用户栈， sscratch 指向内核栈，现在 sp 指向内核栈， sscratch 指向用户栈。
+
+第 4 行，保存 Trap 上下文的通用寄存器 x1。
+
+在这里不保存 sp(x2)，因为要基于它来找到每个寄存器应该被保存到的正确的位置。
+实际上，在栈帧分配之后，我们可用于保存 Trap 上下文的地址区间为 [sp,sp+8×34) ，
+按照 TrapContext 结构体的内存布局，基于内核栈的位置（sp所指地址）
+来从低地址到高地址分别按顺序放置 x0-x31这些通用寄存器，最后是 sstatus 和 sepc 。
+
+第 6-10 行，为了简化代码，x3~x31 这 29 个通用寄存器通过类似循环的 .rept 每次使用 SAVE_GP 宏来保存，
+其实质是相同的。注意我们需要在 trap.S 开头加上 .altmacro 才能正常使用 .rept 命令。
+
+第 11-17 行，用类似的方法，保存浮点寄存器。
+
+第 23-26行，将 CSR sstatus 和 sepc 的值分别读到寄存器 t0 和 t1 中然后保存到内核栈对应的位置上。
+指令 csrr rd, csr 的功能就是将 CSR 的值读到寄存器 rd 中。这里不用担心 t0 和 t1 被覆盖，
+因为它们刚刚已经被保存了。
+
+第 28-29 行专门处理 sp 的问题。首先将 sscratch 的值读到寄存器 t2 并保存到内核栈上，
+注意： sscratch 的值是进入 Trap 之前的 sp 的值，指向用户栈。而现在的 sp 则指向内核栈。
+
+31-40行，切换到内核地址空间并跳转到 trap handler 。
+
+\begin{itemize}
+    \item 第 31 行将内核地址空间的 token 载入到 t0 寄存器中；
+    \item 第 33 行将 trap handler 入口点的虚拟地址载入到 t1 寄存器中；
+    \item 第 35 行直接将 sp 修改为应用内核栈顶的地址；\\
+    注：这三条信息均是内核在初始化该应用的时候就已经设置好的。
+    \item 第 37~38 行将 satp 修改为内核地址空间的 token 并使用 sfence.vma 刷新快表，这就切换到了内核地址空间；
+    \item 第 40 行 最后通过 jr 指令跳转到 t1 寄存器所保存的trap handler 入口点的地址。
+\end{itemize}
+
+\subsubsection{恢复上下文：__restore}
+
+\begin{lstlisting}[language={riscv}, label={code:restore},
+    caption={__restore}]
+__restore:
+    # a0: *TrapContext in user space(Constant); a1: user space token
+    # switch to user space
+    csrw satp, a1
+    sfence.vma
+    csrw sscratch, a0
+    mv sp, a0
+    # now sp points to TrapContext in user space, start restoring based on it
+    # restore sstatus/sepc
+    ld t0, 32*8(sp)
+    ld t1, 33*8(sp)
+    csrw sstatus, t0
+    csrw sepc, t1
+    # restore general purpose registers except x0/sp/tp
+    ld x1, 1*8(sp)
+    ld x3, 3*8(sp)
+    .set n, 5
+    .rept 27
+        LOAD_GP %n
+        .set n, n+1
+    .endr
+    # back to user stack
+    ld sp, 2*8(sp)
+    sret
+\end{lstlisting}
+
+当内核将 Trap 处理完毕准备返回用户态的时候会 调用 __restore ，它有两个参数：
+第一个是 Trap 上下文在应用地址空间中的位置，这个对于所有的应用来说都是相同的，
+在 a0 寄存器中传递；第二个则是即将回到的应用的地址空间的 token ，在 a1 寄存器中传递。
+
+第 4~5 行先切换回应用地址空间（注：Trap 上下文是保存在应用地址空间中）；
+
+第 6 行将传入的 Trap 上下文位置保存在 sscratch 寄存器中，
+这样 __alltraps 中才能基于它将 Trap 上下文保存到正确的位置；
+
+第 7 行将 sp 修改为 Trap 上下文的位置，后面基于它恢复各通用寄存器和 CSR；
+
+第 24 行最后通过 sret 指令返回用户态。完成了一次完整的系统调用。
