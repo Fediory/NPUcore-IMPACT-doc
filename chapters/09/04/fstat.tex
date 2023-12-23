@@ -47,10 +47,8 @@ statbuf：一个指向stat结构的指针，用于接收文件详细信息（指
 \end{algorithm}
 
 
+这里我们也给出stat的结构体供大家参考。
 
-\floatname{algorithm}{Code}
-\begin{algorithm}[tb]
-\centering
 \begin{lstlisting}[language={Rust}, 
 	caption={stat示意结构体}]
     struct stat {
@@ -69,7 +67,7 @@ statbuf：一个指向stat结构的指针，用于接收文件详细信息（指
     time_t    st_ctime;       // 文件的最近更改时间（包括权限和归属人等）
 };
 \end{lstlisting}
-\end{algorithm}
+
 
 \subsubsection{fstat代码详解}
 
@@ -101,8 +99,7 @@ statbuf：一个指向stat结构的指针，用于接收文件详细信息（指
 \end{lstlisting}
 第三步，将fd搜索到的stat信息，写入用户定义的buffer中。我们直接使用copy_to_user函数即可。函数结束，顺利返回SUCCESS。
 \begin{lstlisting}[language={Rust}, 
-	caption={赋值stat buffer}]
+	caption={赋值stat~buffer}]
     copy_to_user(token, &file_descriptor.get_stat(), statbuf as *mut Stat);
     return SUCCESS;
 \end{lstlisting}
-这里我们也给出stat的结构体（代码片段9.20），供大家参考。
