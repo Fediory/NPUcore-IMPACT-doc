@@ -6,7 +6,7 @@
 所以本小节将从fstat所用到的\textbf{stat结构体}，与\textbf{利用fd查找文件}两个角度出发，来解释fstat函数在操作系统文件部分中的实现和应用。\\
 
 \subsubsection{系统调用原型}
-\begin{lstlisting}[language={Rust}, label={code:new_area},
+\begin{lstlisting}[language={Rust}, 
 	caption={os/src/syscall/fs.rs}]
     pub fn sys_fstat(fd: usize, statbuf: *mut u8);
 \end{lstlisting}
@@ -51,7 +51,7 @@ statbuf：一个指向stat结构的指针，用于接收文件详细信息（指
 \floatname{algorithm}{Code}
 \begin{algorithm}[tb]
 \centering
-\begin{lstlisting}[language={Rust}, label={code:new_area},
+\begin{lstlisting}[language={Rust}, 
 	caption={stat示意结构体}]
     struct stat {
     dev_t     st_dev;         // 文件所在设备的设备号
@@ -74,7 +74,7 @@ statbuf：一个指向stat结构的指针，用于接收文件详细信息（指
 \subsubsection{fstat代码详解}
 
 第一步，获取当前线程，老生常谈，不多介绍。
-\begin{lstlisting}[language={Rust}, label={code:new_area},
+\begin{lstlisting}[language={Rust}, 
 	caption={获取线程}]
     let task = current_task().unwrap();
     let token = task.get_user_token();
@@ -86,7 +86,7 @@ statbuf：一个指向stat结构的指针，用于接收文件详细信息（指
 4.在下面的代码块中，首先获取到当前任务的文件表（fd_table）的锁，并使用get_ref(fd)方法获取到指定文件描述符的引用。
 5.如果获取成功（Ok），则克隆（clone）该文件描述符，并将克隆得到的新的file_descriptor赋值给file_descriptor变量。
 如果获取失败（Err），则会返回一个表示错误码（errno）的值。
-\begin{lstlisting}[language={Rust}, label={code:new_area},
+\begin{lstlisting}[language={Rust}, 
 	caption={fd查找}]
     let file_descriptor = match fd {
         AT_FDCWD => task.fs.lock().working_inode.as_ref().clone(),
@@ -100,7 +100,7 @@ statbuf：一个指向stat结构的指针，用于接收文件详细信息（指
     };
 \end{lstlisting}
 第三步，将fd搜索到的stat信息，写入用户定义的buffer中。我们直接使用copy_to_user函数即可。函数结束，顺利返回SUCCESS。
-\begin{lstlisting}[language={Rust}, label={code:new_area},
+\begin{lstlisting}[language={Rust}, 
 	caption={赋值stat buffer}]
     copy_to_user(token, &file_descriptor.get_stat(), statbuf as *mut Stat);
     return SUCCESS;
