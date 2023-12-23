@@ -162,3 +162,243 @@ Minicom 提供了丰富的功能，是 Linux 中串口通信和远程管理的�
 
 	\item 嵌入式开发和调试： 对于嵌入式系统开发者来说，Minicom 是一个重要的工具。它可用于与嵌入式设备进行通信，进行程序下载、调试和测试。
 \end{itemize}
+
+\subsection{U-Boot启动介绍}
+
+Bootloader这个名词在嵌入式系统中应用广泛，中文意思可以理解为“启动加载器”。从字面意思来看，Bootloader就是在系统启动时运行的软件。由于系统启动涉及到硬件和软件的协同操作，因此Bootloader成为连接硬件和软件的关键系统软件之一。在我们的后续实验中，将会使用到一个广泛应用的开源Bootloader软件——U-Boot。
+
+因此，在这一部分，我们将以U-Boot作为示例，介绍Bootloader的功能、工作流程、命令以及菜单选项的含义。接着，会详细讲解U-Boot中一种常用的启动方式——tftpboot，以及与tftpboot相关的tftp协议。最后，会分别探讨在Windows系统中使用软件Mobaxterm时tftp的位置以及如何配置使用，在Linux系统上如何下载安装tftp以及如何配置使用。
+
+\subsubsection{U-Boot Bootloader的功能和工作流程}
+
+
+    \textbf{ U-Boot的功能：}U-Boot作为一款强大的Bootloader软件，拥有多项关键功能。它管理系统启动过程、加载操作系统和初始化硬件，实现了引导加载、固件更新和系统维护。此外，U-Boot提供了丰富的命令集，允许用户与系统进行交互，进行存储器操作、网络传输以及系统配置，为嵌入式系统的开发和调试带来了灵活性和便利性。虽然U-Boot支持多种处理器和操作系统，但其在PowerPC系列处理器和Linux操作系统上的支持最为完善。它涵盖了许多嵌入式开发中常用的功能，例如查看、修改内存，以及通过网络下载操作系统镜像等，为开发者提供了良好的支持。U-Boot项目更新迅速，支持的目标板众多，是学习底层开发的极佳工具。
+    
+    \textbf{  U-Boot的工作流程：}大多数bootloader的启动流程都分为stage1和stage2两部分, U-Boot也不例外。依赖于CPU体系结构的代码（如设备初始化代码等）通常都放在stage1且可以用汇编语言来实现，而stage2则通常用C语言来实现，这样可以实现复杂的功能，而且有更好的可读性和移植性。
+    
+    \begin{figure}[h]
+    	\centering
+    	\includegraphics[width=0.8\textwidth]{figures/08-01-U-Boot的工作流程.png}
+    	\caption{U-Boot的工作流程}
+    	\label{U-Boot的工作流程}
+    \end{figure}
+    
+    图8-8是U-Boot的整体工作流程。Stage1的代码都是与平台相关的，使用汇编语言编写占用空间小而且执行速度快。以ARM920为例，Stagel阶段主要是设置各模式程序异常向量表，初始化处理器相关的关键寄存器以及系统内存。Stage1负责建立Stagel阶段使用的堆栈和代码段，然后复制Stage2阶段的代码到内存。
+    
+    Stage2阶段一般包括初始化 Flash器件、检测系统内存映射、初始化网络设备、进入命令循环，接收用户从串口发送的命令然后进行相应的处理。Stage2使用C语言编写，用于加载操作系统内核，该阶段主要是board.c中的start\_armboot()函数实现。
+    
+    \textbf{ U-Boot的命令：}
+    
+   \begin{table}[!ht]
+   	\centering
+   	\begin{tabular}{|c|c|c|}
+   		\hline
+   		\textbf{类别} & \textbf{命令} & \textbf{功能说明} \\
+   		\hline
+   		信号查询 & bdinfo & 查看开发板信息 \\
+   		信号查询 & printenv & 输出环境变量信息 \\
+   		信号查询 & version & 查看U-Boot的版本号 \\
+   		环境变量 & setenv & 设置或者修改环境变量的值 \\
+   		环境变量 & saveenv & 保存修改后的环境变量 \\
+   		内存操作 & md & 显示内存值\\
+   		内存操作 & nm & 修改指定地址内存值,地址不会自增\\
+   		内存操作 & mm & 修改指定地址内存值,地址会自增\\
+   		内存操作 & mw & 使用一个指定的数据填充一段内存\\
+   		内存操作 & cp & 用于将 DRAM 中的数据从一段内存拷贝到另一段内存中\\
+   		内存操作 & cmp & 用于比较两段内存的数据是否相等\\
+        网络操作 & ping & 检测网络的连通情况 \\
+        网络操作 & dhcp & 从路由器获取 IP 地址 \\
+        网络操作 & nfs & 通过nfs可以在计算机之间通过网络来分享资源 \\
+        网络操作 & tftp & 使用TFTP协议通过网络下载东西到 DRAM 中\\
+        EMMC和SD卡操作 & mmc info & 输出MMC设备信息 \\
+        EMMC和SD卡操作 & mmc read & 读取MMC中的数据 \\
+        EMMC和SD卡操作 & mmc wirte & 向MMC设备写入数据 \\
+        EMMC和SD卡操作 & mmc dev & 切换MMC设备 \\
+        FAT格式文件操作 & fatinfo & 查询指定MMC设置指定分区的文件系统信息 \\
+        FAT格式文件操作 & fatls & 查询FAT格式设备的目录和文件信息 \\
+        FAT格式文件操作 & fstype & 查看MMC设备某个分区的文件系统格式 \\
+        FAT格式文件操作 & fatload & 命令用于将指定的文件读取到DRAM中 \\
+        EXT格式文件操作 & ext2load & 功能同fatload，只是针对ext文件系统 \\
+        EXT格式文件操作 & ext2ls & 功能同fatls，只是针对ext文件系统 \\
+        EXT格式文件操作 & ext4load & 功能同fatload，只是针对ext文件系统 \\
+        EXT格式文件操作 &ext4ls & 功能同fatls，只是针对ext文件系统 \\
+        EXT格式文件操作 &ext4write & 功能同fatwrite，只是针对ext文件系统 \\
+        BOOT操作 & bootz & 自动zImage镜像文件\\
+        BOOT操作 & bootm & 启动 uImage 镜像文件 \\
+        BOOT操作 & boot& 读取环境变量bootcmd来启动Linux系统 \\
+        其他常用操作 & reset & 复位重启 \\
+        其他常用操作 & go & 跳到指定的地址处执行应用 \\
+        其他常用操作 & run & 运行环境变量中定义的命令 \\
+        其他常用操作 & mtest & 简单的内存读写测试命令 \\
+   		\hline
+   	\end{tabular}
+   	\caption{U-Boot的命令表}
+   	\label{U-Boot的命令表}
+   \end{table}
+   
+     进入U-Boot的命令行模式以后输入“help”或者“？”，然后按下回车即可查看当前U-Boot所支持的命令。我们输入“help(或?)命令名”可以查看命令的详细用法。如图8-9所示，以“setenv”这个命令为例，我们输入如下命令即可查看“setenv”这个命令的用法：
+     
+     \begin{figure}[h]
+     	\centering
+     	\includegraphics[width=0.8\textwidth]{figures/08-01-U-Boot命令行help使用实例.png}
+     	\caption{U-Boot命令行help使用实例}
+     	\label{U-Boot命令行help使用实例}
+     \end{figure}
+     
+     \textbf{ U-Boot的菜单选项：}uboot菜单其实就是一个uboot中的命令，和其他的命令没有什么差别。 如图8-9所示，uboot启动时，如果进入uboot命令模式，先运行这个命令，就会打印出一个菜单界面。在uboot的命令模式，通过键入“menu”命令，同样可以调出这个界面。
+     
+    \begin{figure}[h]
+    	\centering
+    	\includegraphics[width=0.8\textwidth]{figures/08-01-U-Boot的菜单选项.png}
+    	\caption{U-Boot的菜单选项}
+    	\label{U-Boot的菜单选项}
+    \end{figure}
+    
+    这些U-Boot中的menu选项包含了各种针对系统启动和配置的操作，各选项具体功能分析如下：
+    
+   \textbf{[1]Download u-boot.bin to Nand Flash}: 用于将u-boot.bin文件下载到Nand Flash中，是更新或安装U-Boot引导程序的选项。
+    
+    \textbf{[2]Download Eboot (eboot.nb0) to Nand Flash}: 将Eboot（eboot.nb0）下载到Nand Flash，可能是针对特定引导程序或固件的更新。
+    
+   \textbf{[3]Download Linux Kernel(zImage.bin) to Nand Flash}: 将Linux内核（zImage.bin）下载到Nand Flash中，用于更新或安装Linux内核。
+    
+    \textbf{[4]Download stepldr.nb1 to Nand Flash}:将stepldr.nb1下载到Nand Flash，可能是针对特定引导程序或固件的更新。
+    
+    \textbf{[5]Set TFTP parameters (PCIP, TQ2440 IP, Mask IP...):} 用于设置TFTP参数，包括PC的IP地址、TQ2440的IP地址、子网掩码等。
+    
+    \textbf{[6]Download YAFFs image (root.bin) to Nand Flash}: 将YAFFs镜像（root.bin）下载到Nand Flash中，可能是针对系统根目录的更新或安装。
+    
+    \textbf{[7]Download Program (ucos-II or TQ2440_Test) to SDRAM and Run it}: 将程序（ucos-II或TQ2440_Test）下载到SDRAM并运行，用于测试或运行特定程序。
+    
+    \textbf{[8]Boot the system}: 启动系统，触发系统的启动过程。
+    
+    \textbf{[9]Format the Nand Flash}: 格式化Nand Flash，清除其上的数据并准备好用于存储。
+    
+    \textbf{[0]Set the boot parameters}: 设置引导参数，包括启动时的配置参数和选项。
+    
+    \textbf{[a]Download user's Program (eg: ucos-II or TQ2440_Test)}: 下载用户程序（例如ucos-II或TQ2440_Test），用于定制或特定应用程序的更新。
+    
+   \textbf{[b]Download Logo Picture (.bin) to Nand Flash}: 将Logo图片（.bin）下载到Nand Flash，可能是更新系统启动时显示的Logo。
+    
+    \textbf{[l]Set LCD Parameters}: 设置液晶显示屏（LCD）参数，包括分辨率、刷新率等。
+    
+    \textbf{[o]Download u-boot to Nor Flash}: 将U-Boot下载到Nor Flash，用于更新或安装U-Boot引导程序。
+    
+    \textbf{[p]Test network (TQ2440 Ping PC's IP)}: 对网络进行测试，Ping TQ2440到PC的IP地址，用于网络连接的调试和测试。
+    
+    \textbf{[r]Reboot u-boot}: 重启U-Boot引导程序。
+    
+    \textbf{[t]Test Linux image (zImage)}: 测试Linux镜像（zImage），可能是验证镜像完整性或针对错误的测试。
+    
+    \textbf{[q]Return main Menu}: 返回主菜单，退出当前菜单并回到主界面。
+    
+\subsubsection{tftpboot与tftp的关系及使用}
+
+    tftpboot是U-Boot中一种常见的启动方式，它通过TFTP协议从网络中加载启动所需的镜像文件。
+    
+    TFTP（Trivial File Transfer Protocol,简单文件传输协议）是TCP/IP协议族中的一个用来在客户机与服务器之间进行简单文件传输的协议，提供不复杂、开销不大的文件传输服务，端口号为69。TFTP协议的设计目的主要是为了进行小文件传输，因此它不具备通常的FTP的许多功能，例如，它只能从文件服务器上获得或写入文件，不能列出目录，不进行认证。
+    
+    TFTP代码所占的内存较小，这对于较小的计算机或者某些特殊用途的设备来说是很重要的，这些设备不需要硬盘，只需要固化了TFTP、UDP和IP的小容量只读存储器即可。因此，随着嵌入式设备在网络设备中所占的比例的不断提升，TFTP协议被越来越广泛的使用。
+    
+    下面分别介绍windows系统以及linux系统中如何下载安装tftp和使用：
+    
+    \newpage
+    
+    \textbf{1.windows系统：}在windows系统中我们使用软件mobaxterm来支持tftp协议。
+    
+    首先在刚刚新建串口的界面点击“"Servers"window-->TFTP server”
+    
+    \begin{figure}[h]
+    	\centering
+    	\includegraphics[width=0.8\textwidth]{figures/08-01-mobaXterm教程1.png}
+    	\caption{mobaXterm教程1}
+    	\label{mobaXterm教程1}
+    \end{figure}
+    
+    然后在右方“Root directory”可以设置tftp服务器根地址，也就是开发板可以访问到的目录路径（包含编译出来的os.bin文件）。左上角点击运行按钮可以运行tftp服务：
+    
+    \begin{figure}[h]
+    	\centering
+    	\includegraphics[width=0.8\textwidth]{figures/08-01-mobaXterm教程2.png}
+    	\caption{mobaXterm教程2}
+    	\label{mobaXterm教程2}
+    \end{figure}
+    
+    运行按钮旁边的方框按钮为停止服务，右边显示“355”是服务剩余时间355秒，每次运行服务只可持续360秒，这是MobaXterm免费版的限制，服务到期后再通过同样的步骤启动服务。
+   
+    运行成功如下图：
+    
+    \begin{figure}[h]
+    	\centering
+    	\includegraphics[width=0.8\textwidth]{figures/08-01-mobaXterm教程3.png}
+    	\caption{mobaXterm教程3}
+    	\label{mobaXterm教程3}
+    \end{figure}
+    
+   \textbf{ 2.linux系统：}这里就来介绍tftp方式从linux主机下载文件到开发板里运行；需要在主机linux系统里安装tftp服务器。在Ubuntu中安装tftp服务器的方法如下：
+    
+    (1)安装TFTP服务器软件：
+   
+   \begin{lstlisting}[language=rust]
+    sudo apt-get update
+    sudo apt-get install tftpd-hpa
+   \end{lstlisting}
+    
+    (2)安装TFTP客户端程序:
+    
+    \begin{lstlisting}[language=rust]
+    sudo apt-get update
+    sudo apt-get install tftp
+    \end{lstlisting}
+    
+     (3)配置TFTP服务器：
+     
+     配置文件通常位于 /etc/default/tftpd-hpa。编辑配置文件并确保以下内容：
+     
+     \begin{lstlisting}[language=rust]
+     TFTP_USERNAME="tftp"
+     TFTP_DIRECTORY="/work/tftpboot"  # TFTP服务器的根目录，你可以选择其他目录
+     TFTP_ADDRESS="0.0.0.0:69"
+     TFTP_OPTIONS="--secure --create"
+     \end{lstlisting}
+     
+     (4)创建TFTP服务器目录并设置权限：
+    
+    \begin{lstlisting}[language=rust]
+    sudo mkdir -p /work/tftpboot  # 创建TFTP服务器的根目录（同(3)中的目录）
+    sudo chmod -R 777 /work/tftpboot  # 设置目录权限（同(3)中的目录）
+    sudo chown -R nobody:nogroup /work/tftpboot  # 设置目录所有者（同(3)中的目录）
+    \end{lstlisting}
+    
+    (5)启动TFTP服务器服务：
+    
+     \begin{lstlisting}[language=rust]
+    sudo systemctl restart tftpd-hpa  # 启动或重启TFTP服务器服务
+    sudo systemctl enable tftpd-hpa   # 设置TFTP服务器随系统启动而自动启动（可选）	
+     \end{lstlisting}
+    
+    (6)验证TFTP服务器是否运行：
+    
+    可以使用netstat命令检查TFTP服务器是否正在监听端口69：
+    
+    \begin{lstlisting}[language=rust]
+    sudo netstat -anu | grep :69
+    \end{lstlisting}
+    
+    若出现以下结果，则说明tftp服务器正在运行：
+    
+    \begin{lstlisting}[language=rust]
+    udp        0      0 0.0.0.0:69              0.0.0.0:* 
+    \end{lstlisting}
+    
+    (7)测试TFTP服务器：
+    
+    使用tftp命令测试TFTP服务器是否正常工作。例如，可以尝试从TFTP服务器下载文件或上传文件：
+    
+    \begin{lstlisting}[language=rust]
+	tftp 服务器地址
+	tftp> get filename  # 从TFTP服务器下载文件到本地
+	tftp> put filename  # 从本地上传文件到TFTP服务器
+    \end{lstlisting}
+    
+    设置TFTP服务器后，确保防火墙允许TFTP流量通过，并根据需要配置相关安全设置。

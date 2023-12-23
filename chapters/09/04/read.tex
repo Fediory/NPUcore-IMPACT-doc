@@ -1,9 +1,9 @@
 \subsection{read}
-read函数的实现逻辑基本与write函数相同，只在对块缓存的处理上有不同之处，所以在这里对重复的内容不在赘述，只进行不同之处的讲解.
+read函数的实现逻辑基本与write函数相同，只在对块缓存的处理上有不同之处，所以在这里对重复的内容不在赘述，只进行不同之处的讲解。
 
 在read函数的块级操作中，与write的区别主要体现在read_at_block_cache_rlock方法的循环处理中。
 write中循环处理是将用户缓存区写入块缓存中，但是在read中调用的是块级的.get_cache().lock.().read()方法，
-是将块缓存的内容（src）copy到用户到的buf（dst）中，最后返回给用户以达到读文件的效果。除此之外，read与write的另一不同之处在于read并没有追加模式（write有对于追加写的判断）
+是将块缓存的内容（src）copy到用户到的buf（dst）中，最后返回给用户以达到读文件的效果。除此之外，read与write的另一不同之处在于read并没有追加模式。（write有对于追加写的判断）
 
 \begin{lstlisting}[
     language={Rust},
