@@ -66,14 +66,14 @@ NPUcore进程的切换大致可以分为以下几个步骤：
 该函数的应用主要有如下两个场景：
 \begin{itemize}
 	\item{应用程序手动使用 sys\_yield 系统调用让出当前进程的占用权。}
-	\begin{lstlisting}[language={Rust}, label={code:syscall yield},caption={syscall yield}]
+	\begin{lstlisting}[language={Rust},caption={syscall yield}]
 		pub fn sys_yield() -> isize {
 			suspend_current_and_run_next();
 			SUCCESS
 		}
 	\end{lstlisting}
 	\item{内核触发定时中断}
-	\begin{lstlisting}[language={Rust}, label={code:Timer Interrupt},caption={Timer Interrupt}]
+	\begin{lstlisting}[language={Rust},caption={Timer Interrupt}]
 		Trap::Interrupt(Interrupt::SupervisorTimer) => {
 			do_wake_expired();
 			set_next_trigger();
@@ -83,7 +83,7 @@ NPUcore进程的切换大致可以分为以下几个步骤：
 \end{itemize}
 
 NPUcore中，suspend\_current\_and\_run\_next 函数实现如下：
-\begin{lstlisting}[language={Rust}, label={code:suspend current and run next}, caption={suspend current and run next}]
+\begin{lstlisting}[language={Rust}, caption={suspend current and run next}]
 	pub fn suspend_current_and_run_next() {
 		// There must be an application running.
 		let task = take_current_task().unwrap();
@@ -110,7 +110,7 @@ MutexGuard<TaskControlBlockInner> ），获取当前进程的 task\_cx (类型�
 
 TaskContext 的定义如下。ra 为调用后需要返回位置的pc值，它记录了 \_\_switch 函数返回之后应该跳转到哪里继续执行，从而在任务切换完成并 ret 之后能到正确的位置；
 sp 为当前程序用户栈的栈指针；s0~s11 是需要保存的12个寄存器。
-\begin{lstlisting}[language={Rust}, label={code:TaskContext}, caption={TaskContext}]
+\begin{lstlisting}[language={Rust},  caption={TaskContext}]
 	pub struct TaskContext {
 		ra: usize,
 		sp: usize,
@@ -119,7 +119,7 @@ sp 为当前程序用户栈的栈指针；s0~s11 是需要保存的12个寄存�
 \end{lstlisting}
 
 add\_task方法是将当前的线程加入到懒分配的全局变量TASK\_MANAGER的就绪队列中。
-\begin{lstlisting}[language={Rust}, label={code:add task}, caption={add task}]
+\begin{lstlisting}[language={Rust},  caption={add task}]
 	lazy_static! {
 		pub static ref TASK_MANAGER: Mutex<TaskManager> = Mutex::new(TaskManager::new());
 	}
@@ -136,7 +136,7 @@ add\_task方法是将当前的线程加入到懒分配的全局变量TASK\_MANAG
 
 schedule 函数负责将当前的进程切换到处理器调度进程(idle task)。
 处理器调度进程由懒分配的全局变量PROCESSOR管理，切换过程通过汇编代码\_\_switch实现。
-\begin{lstlisting}[language={Rust}, label={code:TaskContext}, caption={TaskContext}]
+\begin{lstlisting}[language={Rust}, caption={TaskContext}]
 	pub struct Processor {
 		current: Option<Arc<TaskControlBlock>>,
 		idle_task_cx: TaskContext,
@@ -154,7 +154,7 @@ schedule 函数负责将当前的进程切换到处理器调度进程(idle task)
 
 \_\_switch 函数接受两个参数，旧进程的内核栈指针和新进程的内核栈指针。
 它将旧进程的上下文(sp,ra,s0-s11)保存到内存中，然后从内存从取出新进程的上下文到CPU的寄存器中。
-\begin{lstlisting}[language={riscv}, label={code:switch}, caption={__switch}]
+\begin{lstlisting}[language={riscv}, caption={__switch}]
 	.altmacro
 	.macro SAVE_SN n
 	sd s\n, (\n+2)*8(a0)

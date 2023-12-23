@@ -7,7 +7,7 @@
 	\centering
 	\includegraphics[width=0.5\textwidth]{figures/07-08-VFS-in-file-copy.png}
 	\caption{VFS在文件复制}
-	\label{fig:VFS-in-File-Copy}
+	
 \end{figure}
 
 VFS的思想是把不同类型文件的共同信息放入内核，具体思路是通过在用户进程和文件系统之间引入了一个抽象层。
@@ -17,7 +17,7 @@ VFS的思想是把不同类型文件的共同信息放入内核，具体思路�
 	\centering
 	\includegraphics[width=0.5\textwidth]{figures/07-08-VFS-in-OS.png}
 	\caption{VFS在OS结构中}
-	\label{fig:VFS-in-OS}
+	
 \end{figure}
 
 \subsection{虚拟文件系统的组成}
@@ -44,8 +44,7 @@ VFS的思想是把不同类型文件的共同信息放入内核，具体思路�
 对于超级块，NPUcore中在虚拟文件系统中定义了一个filesystem结构体，用来存储文件系统的信息。这个结构体较为简单。由于NPUcore暂时只支持FAT32文件系统，所以文件系统的类型的枚举类型只有两个值。
 具体代码如下：
 
-\begin{lstlisting}[language={Rust}, label={filesystem},
-	caption={filesystem}]
+\begin{lstlisting}[language={Rust},caption={filesystem}]
 	pub enum FS {
 		Null,
 		Fat32,
@@ -59,8 +58,7 @@ VFS的思想是把不同类型文件的共同信息放入内核，具体思路�
 
 对于目录项和inode，NPUcore使用了DirectoryTreeNode结构体。不难发现，这里既有相关目录的下文件的部分，又有相关文件的信息。定义如下：
 
-\begin{lstlisting}[language={Rust}, label={DirectoryTreeNode},
-	caption={DirectoryTreeNode}]
+\begin{lstlisting}[language={Rust}, caption={DirectoryTreeNode}]
 	pub struct DirectoryTreeNode {
 		/// If this is a directory
 		/// 1. cwd
@@ -83,8 +81,7 @@ VFS的思想是把不同类型文件的共同信息放入内核，具体思路�
 
 对于文件对象，使用了文件描述符file\_description。定义如下：
 
-\begin{lstlisting}[language={Rust}, label={DirectoryTreeNode},
-	caption={DirectoryTreeNode}]
+\begin{lstlisting}[language={Rust},caption={DirectoryTreeNode}]
 	#[derive(Clone)]
 	pub struct FileDescriptor {
 		cloexec: bool,
@@ -94,8 +91,7 @@ VFS的思想是把不同类型文件的共同信息放入内核，具体思路�
 \end{lstlisting}
 
 从表面上看这些和多文件系统共存没有关系，但是以下代码完成了该项功能：
-\begin{lstlisting}[language={Rust}, label={file-trait},
-	caption={file\_trait}]
+\begin{lstlisting}[language={Rust}, caption={file\_trait}]
 	pub trait File: DowncastSync {
 		fn deep_clone(&self) -> Arc<dyn File>;
 		fn readable(&self) -> bool;
@@ -162,42 +158,42 @@ VFS的思想是把不同类型文件的共同信息放入内核，具体思路�
 \begin{itemize}
 	\item \texttt{sys\_openat}: 
 	\begin{lstlisting}[language=rust]
-	pub fn sys_openat(dirfd: usize, path: *const u8, flags: u32, mode: u32)
+		pub fn sys_openat(dirfd: usize, path: *const u8, flags: u32, mode: u32)
 	\end{lstlisting}
 	该接口接收来自用户空间的参数，包括目录描述符 dirfd、路径 path、打开标志位 flags 和文件权限 mode。它会根据传入的目录描述符选择要打开的文件描述符，并通过文件描述符的 open() 方法尝试打开文件。如果打开失败，则返回相应的错误码。然后，函数将新打开的文件描述符插入到当前任务的文件描述符表中，并返回新文件描述符的整数值
 	\item \texttt{sys\_close}: 
 	\begin{lstlisting}[language=rust]
-	pub fn sys_close(fd: usize)
+		pub fn sys_close(fd: usize)
 	\end{lstlisting}
 	该接口会将进程控制块中的文件描述符表对应的一项改为 None ，代表它已经空闲，同时这也会导致内层的引用计数类型 Arc 被销毁，会减少一个文件的引用计数，当引用计数减少到 0 之后文件所占用的资源就会被自动回收。
 	\item \texttt{sys\_read}: 
 	\begin{lstlisting}[language=rust]
-	pub fn sys_read(fd: usize, buf: usize, count: usize)
+		pub fn sys_read(fd: usize, buf: usize, count: usize)
 	\end{lstlisting}
 	该接口根据文件描述符 fd 在文件描述符表中找到相应的文件描述符对象，使用文件描述符的 read\_user() 方法尝试从文件中读取数据到用户空间的缓冲区 buf 中，读取count个字节。
 	\item \texttt{sys\_write}: 
 	\begin{lstlisting}[language=rust]
-	pub fn sys_write(fd: usize, buf: usize, count: usize)
+		pub fn sys_write(fd: usize, buf: usize, count: usize)
 	\end{lstlisting}
 	该接口根据文件描述符 fd 在文件描述符表中找到相应的文件描述符对象，使用文件描述符的 write\_user() 方法尝试从文件中写入数据到用户空间的缓冲区 buf 中，共写count个字节。
 	\item \texttt{sys\_fstat}: 
 	\begin{lstlisting}[language=rust]
-	pub fn sys_fstat(fd: usize, statbuf: *mut u8)
+		pub fn sys_fstat(fd: usize, statbuf: *mut u8)
 	\end{lstlisting}
 	该接口根据文件描述符 fd 在文件描述符表中找到相应的文件描述符对象，并根据文件描述符提供的方法将文件信息写入缓冲区 statbuf 中。
 	\item \texttt{sys\_mount}: 
 	\begin{lstlisting}[language=rust]
-	pub fn sys_mount(source: *const u8,target: *const u8,filesystemtype: *const u8,mountflags: usize,data: *const u8,)
+		pub fn sys_mount(source: *const u8,target: *const u8,filesystemtype: *const u8,mountflags: usize,data: *const u8,)
 	\end{lstlisting}
 	该接口实现了挂载，参数中 source 为要挂载的文件系统的源路径或标识,target 为文件系统将要挂载到的目标位置,filesystemtype 为要挂载的文件系统的类型,mountflags是挂载选项和标志,data 为挂载所需的其他数据。
 	\item \texttt{sys\_lseek}: 
 	\begin{lstlisting}[language=rust]
-	pub fn sys_lseek(fd: usize, offset: isize, whence: u32)
+		pub fn sys_lseek(fd: usize, offset: isize, whence: u32)
 	\end{lstlisting}
 	该接口根据文件描述符 fd 在文件描述符表中找到相应的文件描述符对象,然后以 whence 为偏移的基准，offset 为偏移量，返回操作后的文件指针位置。
 	\item \texttt{sys\_mkdirat}: 
 	\begin{lstlisting}[language=rust]
-	pub fn sys_mkdirat(dirfd: usize, path: *const u8, mode: u32)
+		pub fn sys_mkdirat(dirfd: usize, path: *const u8, mode: u32)
 	\end{lstlisting}
 	该接口在指定路径 dirfd 下创建路径为 path 的目录。
 \end{itemize}

@@ -35,11 +35,12 @@
 
 在内核编译时，通常会根据内核的功能和需求进行空间分配，以确保内核能够正确运行。不同的内核版本可能会有不同的空间分配策略，但通常需要考虑内存使用、代码和数据的可读性和可维护性等因素。
 
-不同的内核有不同的地址空间划分，并找不到一种通用的划分， 如下图，我们可以看到NPUcore 的内核虚拟地址空间分布图：
+不同的内核有不同的地址空间划分，并找不到一种通用的划分， 如下图 \ref{内核虚拟地址空间分布}，我们可以看到NPUcore 的内核虚拟地址空间分布图：
 \begin{figure}[h]
 	\centering
 	\includegraphics[width=0.3\textwidth]{figures/04-02-内核虚拟地址空间分布.png}
 	\caption{内核虚拟地址空间分布}
+	\label{内核虚拟地址空间分布}
 \end{figure}
 
 \begin{itemize}
@@ -86,8 +87,7 @@
 
 在内核运行时会输出如下内容：
 
-\begin{lstlisting}[language={Rust}, label={code:forktest}
-	]
+\begin{lstlisting}[language={Rust}]
 	.text [0x80200000, 0x80237000)
 	.rodata [0x80237000, 0x80240000)
 	.data [0x80240000, 0x80241000)
@@ -115,7 +115,7 @@
 	
 	数据段，该空间拥有读权限和写权限。要想辨别其与.rodata的区别，下面的C语言示例可以帮助我们更好地理解
 	
-	\begin{lstlisting}[language={C}, label={code:forktest}]
+	\begin{lstlisting}[language={C}]
 		int bss_value1=5;//全局的被初始化的变量，存放于data段
 		const int cbss_value1=5;//加上const变为只读的常量，存放于rodata段
 	\end{lstlisting}
@@ -130,7 +130,7 @@
 \hspace*{\fill}
 
 不同区域读写执行权限不同是通过 MapPermission 映射区域的权限来控制的，标志如下：
-\begin{lstlisting}[language={Rust}, label={code:memoryset}]
+\begin{lstlisting}[language={Rust}]
 	//os/src/mm/memory_set.rs
 	
 	bitflags! {
@@ -144,8 +144,7 @@
 \end{lstlisting}
 
 字段地址确定首先要通过外部符号的引用，引入这些标记是为了在下面恒等映射中引用，确定恒等映射的地址区域。下面是extern "C" 的引用：
-\begin{lstlisting}[language={Rust}, label={code:extern "C"},
-	caption={extern "C"}]
+\begin{lstlisting}[language={Rust},caption={extern "C"}]
 	//os/src/mm/memory_set.rs
 	extern "C" {
 		fn stext();
@@ -165,19 +164,19 @@
 
 此外还有\textbf{physical memory}（物理内存），内核地址空间中需要存在一个恒等映射到内核数据段之外的可用物理页帧的逻辑段，这样才能在启用页表机制之后，内核仍能以纯软件的方式读写这些物理页帧。
 
-有了以上的知识，可以画出这五段逻辑区域的物理地址空间分布如下图：
+有了以上的知识，可以画出这五段逻辑区域的物理地址空间分布如下图 \ref{逻辑区域的物理地址空间分布}：
 \begin{figure}[htb]
 	\centering
 	\includegraphics[width=0.5\linewidth]{figures/04-02-逻辑区域的物理地址空间.png}
 	\caption{
 		逻辑区域的物理地址空间分布
 	}
-	\label{fig:逻辑区域的物理地址空间分布}
+	\label{逻辑区域的物理地址空间分布}
 \end{figure}
 
 
 需要特别说明的是，这里画出的只是在 qemu 平台上的地址空间分布，在 k210 或 fu740 上则不一样。一是因为上⽂提到 k210 的 BASE\_ADDRESS 为 0x80020000 ，不同于 qemu 的 0x80200000 。二是因为 MEMORY\_END 在不同平台上也不相同，具体如下：
-\begin{lstlisting}[language={Rust}, label={code:config},caption={config.rs}]
+\begin{lstlisting}[language={Rust},caption={config.rs}]
 	//os/src/config.rs
 	#[cfg(all(not(feature="board\_k210"), not(feature="board\_fu740")))]
 	pub const MEMORY_END: usize = 0x809e_0000;
@@ -193,8 +192,7 @@
 I/O，即内存映射I/O），通过将外围设备映射到内存空间，便于CPU的访问。
 使用这种处理方式，设备控制寄存器只是内存中的变量，可以和其他变量一样进行寻址，无需特殊的I/O指令（如 IN ， OUT）来读写设备控制器。而且这种⽅式可以将设备的读取权限管理同区域读取权限管理结合起来，这个区域没有 U 权限标志，那么就只可以在内核态被访问，无需特殊的保护机制。
 
-\begin{lstlisting}[language={Rust}, label={code:forktest},
-	caption={//os/board}]
+\begin{lstlisting}[language={Rust}, caption={//os/board}]
 	//os/src/boards/qemu.rs
 	pub const MMIO: &[(usize, usize)] = &[
 	(0x1000_0000, 0x1000),
@@ -228,8 +226,7 @@ I/O，即内存映射I/O），通过将外围设备映射到内存空间，便�
 \end{lstlisting}
 其中每个元组的第一个数为起始地址，第二个数为区域大小。据此来分配 MMIO
 ，权限均为可读可写。在 new\_kernel() 方法中对应的映射代码为：
-\begin{lstlisting}[language={Rust}, label={code:forktest},
-	caption={//os/mm/memory\_set.rs}]
+\begin{lstlisting}[language={Rust},	caption={//os/mm/memory\_set.rs}]
 	macro_rules! anonymous_identical_map {
 		($begin:expr,$end:expr,$permission:expr) => {
 			memory_set
@@ -278,7 +275,7 @@ I/O，即内存映射I/O），通过将外围设备映射到内存空间，便�
 
 首先，从数据结构入手。地址空间由页表和一系列内存映射区域构成。在NPUcore中，页表可以直接创建为PageTable对象，而内存映射区域需要使用一个MapArea的向量（vec）来表示。具体代码如下：
 
-\begin{lstlisting}[language={Rust}, label={code:MemorySet}, caption={MemorySet}]
+\begin{lstlisting}[language={Rust}, caption={MemorySet}]
 	pub struct MemorySet {
 		page_table: PageTable,
 		/// The mapped area.
@@ -289,7 +286,7 @@ I/O，即内存映射I/O），通过将外围设备映射到内存空间，便�
 \end{lstlisting}
 有关多级页表的具体实现将在后续章节详细讲解。这里我们主要关注MapArea的实现：
 
-\begin{lstlisting}[language={Rust}, label={code:MapArea}, caption={MapArea}]
+\begin{lstlisting}[language={Rust},caption={MapArea}]
 	#[derive(Clone)]
 	/// Map area for different segments or a chunk of memory for memory mapped file access.
 	pub struct MapArea {
@@ -312,7 +309,7 @@ I/O，即内存映射I/O），通过将外围设备映射到内存空间，便�
 \end{lstlisting}
 MapPermission表示映射权限，MapType表示映射方式，分为直接映射（Identical）和间接映射（Framed）。inner是一种LinearMap类型，表示MapArea所映射到的内存区域，其实现如下：
 
-\begin{lstlisting}[language={Rust}, label={code:LinearMap}, caption={LinearMap}]
+\begin{lstlisting}[language={Rust}, caption={LinearMap}]
 	#[cfg(not(feature = "oom_handler"))]
 	#[derive(Clone)]
 	pub struct LinearMap {
@@ -322,7 +319,7 @@ MapPermission表示映射权限，MapType表示映射方式，分为直接映射
 \end{lstlisting}
 VPNRange表示虚拟页号的范围，通过VPNRange可以了解到该内存区域的大小。frames是枚举类型Frame的向量。关于Frame的枚举类型的具体代码如下：
 
-\begin{lstlisting}[language={Rust}, label={code:Frame}, caption={Frame}]
+\begin{lstlisting}[language={Rust}, caption={Frame}]
 	pub enum Frame {
 		InMemory(Arc<FrameTracker>),
 		Unallocated,
@@ -339,7 +336,7 @@ RAII（Resource Acquisition Is Initialization），也称为“资源获取就�
 
 在这里就是使FrameTracker与物理页面有相同的生命周期，当获取物理页面构建FrameTracker时就将物理页面初始化，在释放FrameTracker时也将自动回收物理页面。具体见以下代码：
 
-\begin{lstlisting}[language={Rust}, label={code:FrameTracker}, caption={FrameTracker}]
+\begin{lstlisting}[language={Rust}, caption={FrameTracker}]
 	impl FrameTracker {
 		pub fn new(ppn: PhysPageNum) -> Self {
 			// page cleaning
@@ -369,7 +366,7 @@ RAII（Resource Acquisition Is Initialization），也称为“资源获取就�
 
 创建内核地址空间的方法new\_kernel。具体创建方式在前面章节已经给出。这里给出该函数下调用的其他与MemorySet相关的函数：
 
-\begin{lstlisting}[language={Rust}, label={code:内核创建}, caption={内核创建}]
+\begin{lstlisting}[language={Rust}, caption={内核创建}]
 	MemorySet
 	├── new_bare()// 新建一个空的地址空间
 	├── new_kernel()// 新建一个空的内核空间，在前面介绍过
@@ -383,7 +380,7 @@ RAII（Resource Acquisition Is Initialization），也称为“资源获取就�
 
 页表和空的areas向量，具体实现如下：
 
-\begin{lstlisting}[language={Rust}, label={code:new bare}, caption={new\_bare}]
+\begin{lstlisting}[language={Rust}, caption={new\_bare}]
 	impl MemorySet {
 		/// Create a new struct with no information at all.
 		pub fn new_bare() -> Self {
@@ -396,7 +393,7 @@ RAII（Resource Acquisition Is Initialization），也称为“资源获取就�
 \end{lstlisting}
 
 之后首先映射跳板区域，注意这个跳板区域并没有被包括在areas里。
-\begin{lstlisting}[language={Rust}, label={code:trampoline}, caption={trampoline}]
+\begin{lstlisting}[language={Rust}, caption={trampoline}]
 	fn map_trampoline(&mut self) {
 		self.page_table.map(
 		VirtAddr::from(TRAMPOLINE).into(),
@@ -410,7 +407,7 @@ RAII（Resource Acquisition Is Initialization），也称为“资源获取就�
 
 其余区域的映射方式大致相同，NPUcore定义了一个anonymous\_identical\_map宏（匿名恒等映射），来减少重复代码。具体代码如下：
 
-\begin{lstlisting}[language={Rust}, label={code:anonymous identical map}, caption={anonymous\_identical\_map}]
+\begin{lstlisting}[language={Rust},  caption={anonymous\_identical\_map}]
 	macro_rules! anonymous_identical_map {
 		($begin:expr,$end:expr,$permission:expr) => {
 			memory_set
@@ -434,7 +431,7 @@ RAII（Resource Acquisition Is Initialization），也称为“资源获取就�
 \end{lstlisting}
 这个宏有两个分支。四个参数时，第一个参数为被map的区域名称，会被打印一下再调用三个参数的分支。三个参数时，分别为起始地址，终止地址和映射区域的权限。注意在MapArea::new中有MapType::Identical，这个决定了调用这个宏的映射都是恒等映射。这个宏主体部分调用了MemorySet的push方法：
 
-\begin{lstlisting}[language={Rust}, label={code:push}, caption={push}]
+\begin{lstlisting}[language={Rust}, caption={push}]
 	fn push(&mut self, mut map_area: MapArea, data: Option<&[u8]>) -> Result<(), MemoryError> {
 		match data {
 			Some(data) => {
@@ -462,7 +459,7 @@ RAII（Resource Acquisition Is Initialization），也称为“资源获取就�
 方法的功能是，将尚未映射的MapArea push到当前MemorySet中，并为映射分配所需的内存，如果没有数据，那么直接遍历map\_area.inner.vpn\_range（虚拟页面页号），使用MapArea的map\_one方法来映射每个页面。如果有数据的话，在上述操作之外还需添加将数据拷贝映射后的物理页面的操作。
 下面看一下map\_one方法的实现：
 
-\begin{lstlisting}[language={Rust}, label={code:map one}, caption={map\_one}]
+\begin{lstlisting}[language={Rust}, caption={map\_one}]
 	pub fn map_one(
 	&mut self,
 	page_table: &mut PageTable,
