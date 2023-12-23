@@ -579,3 +579,92 @@ __restore:
 第 7 行将 sp 修改为 Trap 上下文的位置，后面基于它恢复各通用寄存器和 CSR；
 
 第 24 行最后通过 sret 指令返回用户态。完成了一次完整的系统调用。
+
+
+\subsection{RustSBI简介与调用RustSBI}
+
+\subsubsection{RustSBI简介}
+
+经过系统调用陷入S态后，如果S态的内核程序无法独立地完成U态应用程序所需的功能，
+则它必须要再调用SBI call，以请求M态程序SBI的服务。
+
+RISC-V指令集的SBI标准规定了类Unix操作系统之下的运行环境规范。这个规范拥有多种实现，RustSBI是它的一种实现。
+
+RISC-V架构中，存在着定义于操作系统之下的运行环境。这个运行环境不仅将引导启动RISC-V下的操作系统， 
+还将常驻后台，为操作系统提供一系列二进制接口，以便其获取和操作硬件信息。 
+RISC-V给出了此类环境和二进制接口的规范，称为“操作系统二进制接口”，即“SBI”。
+SBI的实现是在M模式下运行的特定于平台的固件，它将管理S、U等特权上的程序或通用的操作系统。
+
+RustSBI是RISC-V下SBI标准的实现，旨在为裸机平台、虚拟化和模拟器软件提供良好的SBI接口支持。
+它有机结合了Rust嵌入式生态与RISC-V系统软件，加快开发速度的同时，保证Rust语言具备的良好安全性和运行性能。
+本次0.3.0版本主要包括增加了实例化的SBI接口支持及相关的构造器结构，可以在stable Rust编译，去
+除了对堆内存和全局变量的依赖，完善了相关文档，以及若干的小修复。
+0.3.0版本更新将为Rust编写的RISC-V虚拟化软件和RISC-V模拟器提供良好的支持，
+并进一步完善裸机RISC-V开发的实用性，可以启动Linux等在内的成熟操作系统和zCore等在内的科研操作系统。
+
+若想了解更多有关RustSBI的知识和具体实现，请前往开发者洛佳的github仓库：
+https://github.com/rustsbi/rustsbi
+
+\subsubsection{在NPUcore中调用RustSBI}
+
+与我们在U态使用ecall指令调用syscall并陷入内核态那样，
+我们在内核态同样也可以通过ecall指令调用RustSBI并进一步陷入M态。
+
+正如我们会给syscall进行系统调用编号那样，我们也可以通过寄存器传递给OpenSBI一个“调用编号”。
+
+SBI的规范中为SBI call定义了9个编号，见\autoref{code:sbi call numbers}
+
+\begin{lstlisting}[language={Rust}, label={code:sbi call numbers},
+    caption={SBI call 调用编号}]
+const SBI_SET_TIMER: usize = 0;
+const SBI_CONSOLE_PUTCHAR: usize = 1;
+const SBI_CONSOLE_GETCHAR: usize = 2;
+const SBI_CLEAR_IPI: usize = 3;
+const SBI_SEND_IPI: usize = 4;
+const SBI_REMOTE_FENCE_I: usize = 5;
+const SBI_REMOTE_SFENCE_VMA: usize = 6;
+const SBI_REMOTE_SFENCE_VMA_ASID: usize = 7;
+const SBI_SHUTDOWN: usize = 8;
+\end{lstlisting}
+
+在S态调用SBI call的方法与U态调用syscall的方法类似，通过\autoref{code:syscall sbi call}来具体观察。
+
+\begin{lstlisting}[language={Rust}, label={code:syscall sbi call},
+    caption={syscall与SBI call对比}]
+fn syscall(id: usize, args: [usize; 3]) -> isize {
+    let mut ret: isize;
+    unsafe {
+        asm!(
+            "ecall",
+            inlateout("x10") args[0] => ret,
+            in("x11") args[1],
+            in("x12") args[2],
+            in("x17") id
+        );
+    }
+    ret
+}
+fn sbi_call(which: usize, arg0: usize, arg1: usize, arg2: usize) -> usize {
+    let mut ret;
+    unsafe {
+        asm!(
+            "ecall",
+            inlateout("x10") arg0 => ret,
+            in("x11") arg1,
+            in("x12") arg2,
+            in("x17") which,
+        );
+    }
+    ret
+}
+\end{lstlisting}
+
+可以发现二者几乎相同。这个现象引出来一个问题：既然我们在U态进行系统调用时，
+保存与恢复用户态寄存器上下文的内容是由内核程序完成的（见上述章节），
+那么我们现在在内核态进行SBI call，保存与恢复内核态寄存器的上下文是不是应该由SBI程序完成呢？
+
+查看SBI的实现规范文档得知，以上猜测是正确的。此外，
+与内核程序中需要设置stvec寄存器以正确跳转至trap_handler函数一样，RustSBI也同样设置了mtvec寄存器。
+
+因此，在编写系统调用乃至整个NPUcore的过程中，由于RustSBI的存在，机器级硬件的操控基本被屏蔽了，
+可以把心思专心放在内核态程序的编写中来。
