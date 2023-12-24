@@ -309,27 +309,11 @@ man是系统的分页(page)手册，指定的man的页选项通常是程序工�
 \end{lstlisting}
 
 最后，在代码实现上，关注手册中的细节，例如可能出现的错误信息，对于特殊情况的处理。
-如在open的例子中，可能出现的错误类型有：
+如在open的例子中，可能出现的错误类型有很多，例如：
 \begin{itemize}
     \item EACCES：文件不可访问
     \item EEXIST：文件已经存在
     \item EFAULT：pathname指向的内存空间不可访问
-    \item EINTR：调用被信号中断
-    \item EISDIR：pathname指向的是一个目录
-    \item ELOOP：pathname指向的是一个循环链接
-    \item EMFILE：进程打开的文件数超过了系统限制
-    \item ENAMETOOLONG：pathname太长
-    \item ENFILE：系统打开的文件数超过了系统限制
-    \item ENODEV：pathname指向的文件不存在
-    \item ENOENT：pathname指向的文件不存在
-    \item ENOMEM：内存不足
-    \item ENOTDIR：pathname指向的不是一个目录
-    \item ENXIO：pathname指向的设备不存在
-    \item EOVERFLOW：文件太大
-    \item EPERM：pathname指向的文件不可访问
-    \item EROFS：pathname指向的文件是只读的
-    \item ETXTBSY：pathname指向的文件正在被使用
-    \item EWOULDBLOCK：O\_NONBLOCK被设置，但是文件被阻塞
 \end{itemize}
 
 如此，我们就完整的实现了一个系统调用。类似的对于其他的系统调用，我们都可以类似的实现。

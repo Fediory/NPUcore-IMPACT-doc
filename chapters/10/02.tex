@@ -1,1 +1,165 @@
 \section{支持运行Lmbench}
+
+\subsection{支持运行Lmbench}
+要从lmbench二进制文件中提取出相关的系统调用，过程基本与提取busybox的系统调用类似。
+仍然可以用一行命令完成。
+
+\begin{lstlisting}[language=bash]
+    # 从二进制文件中获取系统调用号，将objfile改为提取的目标二进制文件
+    objdump -d objfile | grep -B 9 ecall | grep "li.a7" | tee syscall.txt
+
+    # 如果报错：objdump: can't disassemble for architecture UNKNOWN! ，是由于当前的objdump并非RISC-V架构，尝试
+    riscv64-linux-gnu-objdump -d busybox | grep -B 9 ecall | grep "li.a7" | tee syscall.txt
+
+\end{lstlisting}
+
+上述命令的详细解释，请参考第九章第三节，在此不再赘述。
+
+在本节中，我们通过比较得到Lmbench中存在\textbf{17}条完全不同于Busybox中的系统调用。
+
+\begin{table}[h]
+\centering
+\begin{tabular}{|c|c|c|}
+\hline
+\textbf{指令} & \textbf{系统调用} & \textbf{系统调用号} \\
+\hline
+li a7,101 & \_\_NR\_nanosleep & 101 \\
+\hline
+li a7,114 & \_\_NR\_clock\_getres & 114 \\
+\hline
+li a7,118 & \_\_NR\_sched\_setparam & 118 \\
+\hline
+li a7,119 & \_\_NR\_sched\_setscheduler & 119 \\
+\hline
+li a7,120 & \_\_NR\_sched\_getscheduler & 120 \\
+\hline
+li a7,121 & \_\_NR\_sched\_getparam & 121 \\
+\hline
+li a7,131 & \_\_NR\_tgkill & 131 \\
+\hline
+li a7,165 & \_\_NR\_getrusage & 165 \\
+\hline
+li a7,202 & \_\_NR\_accept & 202 \\
+\hline
+li a7,203 & \_\_NR\_connect & 203 \\
+\hline
+li a7,206 & \_\_NR\_sendto & 206 \\
+\hline
+li a7,207 & \_\_NR\_recvfrom & 207 \\
+\hline
+li a7,211 & \_\_NR\_sendmsg & 211 \\
+\hline
+li a7,212 & \_\_NR\_recvmsg & 212 \\
+\hline
+li a7,227 & \_\_NR\_msync & 227 \\
+\hline
+li a7,72 & \_\_NR\_pselect6 & 72 \\
+\hline
+li a7,82 & \_\_NR\_fsync & 82 \\
+\hline
+\end{tabular}
+\caption{Lmbench系统调用}
+\label{table:syscalls_compact}
+\end{table}
+
+针对这些系统调用，我们将其分为了以下\textbf{7}种类型：
+
+\begin{itemize}
+    \item \textbf{时间和定时器相关系统调用}
+
+    \item \textbf{进程调度和管理系统调用}
+
+    \item \textbf{信号和线程管理系统调用}
+
+    \item \textbf{资源和性能监测系统调用}
+
+    \item \textbf{网络编程相关系统调用}
+
+    \item \textbf{文件操作和数据同步系统调用}
+
+    \item \textbf{事件等待和选择系统调用}
+\end{itemize}
+
+接下来，我们将分类为大家讲解各个类别的系统调用功能。
+
+\begin{itemize}
+    \item \textbf{时间和定时器相关系统调用}
+    \begin{itemize}
+        \item \texttt{\_\_NR\_nanosleep (101)}: 用于导致当前进程休眠指定的时间，通常用于实现定时器功能。
+        \item \texttt{\_\_NR\_clock\_getres (114)}: 用于获取指定时钟的分辨率（精度），可以用于测量时间间隔。
+    \end{itemize}
+
+    \item \textbf{进程调度和管理系统调用}
+    \begin{itemize}
+        \item \texttt{\_\_NR\_sched\_setparam (118)}: 用于设置指定进程的调度参数，例如设置进程的优先级等。
+        \item \texttt{\_\_NR\_sched\_setscheduler (119)}: 用于设置指定进程的调度策略，例如设置为实时调度或普通调度。
+        \item \texttt{\_\_NR\_sched\_getscheduler (120)}: 用于获取指定进程的当前调度策略。
+        \item \texttt{\_\_NR\_sched\_getparam (121)}: 用于获取指定进程的调度参数，例如获取进程的优先级等。
+    \end{itemize}
+
+    \item \textbf{信号和线程管理系统调用}
+    \begin{itemize}
+        \item \texttt{\_\_NR\_tgkill (131)}: 用于向指定线程组（thread group）中的线程发送信号。
+    \end{itemize}
+
+    \item \textbf{资源和性能监测系统调用}
+    \begin{itemize}
+        \item \texttt{\_\_NR\_getrusage (165)}: 用于获取进程或子进程的资源使用情况，如CPU时间、内存使用等信息。
+    \end{itemize}
+
+    \item \textbf{网络编程相关系统调用}
+    \begin{itemize}
+        \item \texttt{\_\_NR\_accept (202)}: 用于在网络编程中接受来自客户端的连接请求。
+        \item \texttt{\_\_NR\_connect (203)}: 用于在网络编程中建立与远程服务器的连接。
+        \item \texttt{\_\_NR\_sendto (206)}: 用于在网络编程中向指定目标发送数据。
+        \item \texttt{\_\_NR\_recvfrom (207)}: 用于在网络编程中从指定源接收数据。
+        \item \texttt{\_\_NR\_sendmsg (211)}: 用于发送消息，通常用于进程间通信（IPC）。
+        \item \texttt{\_\_NR\_recvmsg (212)}: 用于接收消息，通常用于进程间通信（IPC）。
+    \end{itemize}
+
+    \item \textbf{文件操作和数据同步系统调用}
+    \begin{itemize}
+        \item \texttt{\_\_NR\_msync (227)}: 用于将内存中的数据同步到文件中，通常用于文件映射。
+        \item \texttt{\_\_NR\_fsync (82)}: 用于将指定文件的数据和元数据刷新到磁盘上，以确保数据持久化。
+    \end{itemize}
+
+    \item \textbf{事件等待和选择系统调用}
+    \begin{itemize}
+        \item \texttt{\_\_NR\_pselect6 (72)}: 用于在多个文件描述符上等待事件，并在事件发生时返回。
+    \end{itemize}
+\end{itemize}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{|c|c|c|}
+\hline
+\textbf{系统调用类别} & \textbf{系统调用} & \textbf{系统调用号} \\
+\hline
+时间和定时器相关 & \_\_NR\_nanosleep & 101 \\
+& \_\_NR\_clock\_getres & 114 \\
+\hline
+进程调度和管理 & \_\_NR\_sched\_setparam & 118 \\
+& \_\_NR\_sched\_setscheduler & 119 \\
+& \_\_NR\_sched\_getscheduler & 120 \\
+& \_\_NR\_sched\_getparam & 121 \\
+\hline
+信号和线程管理 & \_\_NR\_tgkill & 131 \\
+\hline
+资源和性能监测 & \_\_NR\_getrusage & 165 \\
+\hline
+网络编程相关 & \_\_NR\_accept & 202 \\
+& \_\_NR\_connect & 203 \\
+& \_\_NR\_sendto & 206 \\
+& \_\_NR\_recvfrom & 207 \\
+& \_\_NR\_sendmsg & 211 \\
+& \_\_NR\_recvmsg & 212 \\
+\hline
+文件操作和数据同步 & \_\_NR\_msync & 227 \\
+& \_\_NR\_fsync & 82 \\
+\hline
+事件等待和选择 & \_\_NR\_pselect6 & 72 \\
+\hline
+\end{tabular}
+\caption{Lmbench分类系统调用}
+\label{table:syscalls_compact}
+\end{table}
