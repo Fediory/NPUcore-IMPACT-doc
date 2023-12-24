@@ -2,7 +2,7 @@
 \subsection{编写面向POSIX标准的系统调用}
 \subsubsection{支持BusyBox所需系统调用}
 
-要从一个二进制文件中提取出相关的系统调用，需要经历如\ref{fig:pipe}所示的步骤：
+要从一个二进制文件中提取出相关的系统调用，需要经历如\ref{fig:get syscall}所示的步骤：
 
 \begin{figure}[htb]
     \centering
@@ -10,7 +10,7 @@
     \caption{
         从二进制文件中提取系统调用的的步骤
     }
-    \label{fig:get_syscall}
+    \label{fig:get syscall}
 \end{figure}
 
 这些指令可以用一行命令完成。
@@ -36,7 +36,7 @@ tee syscall.txt: 最后，将前两个grep命令的输出保存到一个名为sy
 
 二进制文件的汇编不再进行讲解。下面给出一个反汇编出的程序片段：
 
-\begin{lstlisting}[language={[RISC-V]Assembler}]
+\begin{lstlisting}[language={riscv}]
     1062c:	0b953c27          	fsd	fs9,184(a0)
     10630:	0da53027          	fsd	fs10,192(a0)
     10634:	0db53427          	fsd	fs11,200(a0)
@@ -62,7 +62,7 @@ tee syscall.txt: 最后，将前两个grep命令的输出保存到一个名为sy
 
 当我们执行了 grep -B 9 ecall 后，获得到的汇编指令集合如下所示。
 
-\begin{lstlisting}[language={[RISC-V]Assembler}]
+\begin{lstlisting}[language={riscv}]
 --
   10a4d2:	26a73703          	ld	a4,618(a4) # 0x1bd738
   10a4d6:	40a006bb          	negw	a3,a0
