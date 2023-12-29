@@ -1,1 +1,90 @@
 \section{内核优化与比较}
+\subsection{内存管理空间优化}
+
+\textbf{问题提出与分析}
+
+在多道程序运行时，存在内存空间不足的问题。具体而言如下：
+
+1、如图\ref{fig:ELF}所示，测例本身的用户程序（ELF）占用的空间较大。
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.8\textwidth]{figures/10-04-测例ELF.jpg}
+	\caption{测例 ELF 大小}
+	\label{fig:ELF}
+\end{figure}
+
+2、为了考验 os 对于内存管理的性能，部分测例在运行时，需要占用大量内存，比如在运行 libc-test 中的 sscanf_long 测例，需要申请 8M 的空间逐字节读写；在执行 lmbench 工具集中的 lat_ctx 测试时，需要进行 32，64，96 进程上下文切换的测试，不言而喻，这个过程需要占用大量的内存。
+
+3、与此同时，还要受限于 k210 并不宽裕的内存大小，如图\ref{fig:k210}所示，k210 的内存空间已经捉襟见肘。
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.8\textwidth]{figures/10-04-k210内存空间.jpg}
+	\caption{k210 内存使用情况}
+	\label{fig:k210}
+\end{figure}
+
+4、在前文所述的困难下，我们急需通过换出来腾空内存，从而实现内存的“扩容”。此时增加“换入换出”的功能似乎成为不二之选。但是在 NPUcore 之前， UltraOS 并没有实现这一功能（UltraOS 只有不完全的缺页处理和懒分配机制）。
+
+5、如果采用换入换出的策略，又会遇到IO瓶颈， k210 上SD卡峰值读写速度约 1MB/s ,而 libc-test 每个测例限时 5s，如果不对内存管理进行优化，在运行测例时很容易就出现超时。
+
+在以上种种限制之下，迫切需要一套集成优化方法来支持内存“扩容”。 
+
+
+\textbf{优化方法与评估}
+
+NPUcore内存采用了一套“扩容”集成优化方法，包括以下策略：
+
+\begin{itemize}
+	\item 懒分配（分配阶段）
+	\item 缓存回收与写回 （回收）
+	\item zRAM 压缩内存（压缩）
+	\item 虚拟内存 换入换出（交换）
+	\end{itemize}
+
+具体而言，NPUcore 实现了一种依赖 Page Fault的优化（CoW）。通过将两个页表项的 W 权限位清零, 并且映射到相同的物理页。可以实现页面共享和写时复制（Copy on Write）。对共享页的写入会产生 Page Fault, 此时我们再结合内存描述符以及页表项的情况做出判断和相应处理。
+
+如图\ref{fig:page fault}所示，是我们对相关 Fault 具体的处理方法：
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.8\textwidth]{figures/10-04-Page fault.jpg}
+	\caption{Page Fault 处理方法}
+	\label{fig:page fault}
+\end{figure}
+
+首先是 Segment fault，对于原本就没有权限的和没有映射的地址,会在页表状态(实际通过内存中的"MapArea"(段)结构储存)中查找失败, 然后直接进入无权异常/错地址异常(上方的两个红终止框)。
+
+其次是 Page Fault 。由于没有权限的情况判断已经由之前的两个路径分支点完成, 这里一定是有权限的, 只是触发的权限是Read还是Write。进入这个分支的必然是页还没分配的,如果是文件映射，对于 MapArea 中有写入权限的, 按照Linux的默认行为, 是直接写回文件, 所以我们直接将页分配给这里, 然后读取一页的文件即可。对于文件没有写入权限的, 就可以直接映射已经缓存的页, 然后完成。之后的其他行为和别的已经映射的没有差异。事实上, Linux是允许阻断文件映射对源文件的写回, 但不是默认行为, 我们暂时不考虑。如果是匿名映射，则需要进行判断，如果该页面未被分配，则分配页面；如果是该页面已分配但是已被换出，则重新进行分配，即将该页面重新换入；如果该页面处于压缩内存当中，则将该页面进行解压，得到原来的页面，经过上述三种不同情况的处理，就可完成分配。
+
+NPUcore 的“扩容”集成优化方法，效果极其显著。这一套虚拟内存管理方法，让应用程序可以感知到更多的可用内存，我们的实验也验证了 NPUcore 内存回收性能的高效。如图\ref{fig:memory test}所示，我们增加的内存管理方法，极大提升内存回收峰值，提高了操作系统的内存回收性能。
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.8\textwidth]{figures/10-04-内存实验评估.jpg}
+	\caption{NPUcore 内存回收性能比较}
+	\label{fig:memory test}
+\end{figure}
+
+
+\subsection{可靠性优化：SD卡驱动优化}
+、
+\textbf{问题提出与分析}
+
+在运行 libc-test 测试，k210 板 SD 卡驱动在运行多个用户程序时，内存占用率过高时会出现不稳定。 如图\ref{fig:SD error}所示，rCore Tutorial 系统在压力测试下SD卡驱动读写异常。
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.8\textwidth]{figures/10-04-SD卡驱动异常.jpg}
+	\caption{压力测试下SD卡驱动读写异常}
+	\label{fig:SD error}
+\end{figure}
+
+我们经过初步分析，发现是因为测例在运行时访问了 KPU 内存，也就是高 2M 物理内存。进一步分析，我们发现问题出在当内存占用率高时，CPU 会频繁访问 KPU 内存，由于 KPU 与 CPU 的时钟频率不同，因此会造成访存不稳定，进而影响SD卡读写的稳定性。
+
+\textbf{优化方法与评估}
+
+为了让 NPUcore 在读写 SD 失败后具有错误恢复的能力 ，我们在 SD 卡驱动程序中进行了完善，以提高 NPUcore 的稳定性。
+
+
