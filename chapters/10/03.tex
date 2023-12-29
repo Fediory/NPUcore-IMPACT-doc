@@ -6,7 +6,7 @@ NPUcore性能得分如下:
 
 \begin{table}
     \centering
-    \begin{tabular}{|c|c|}
+    \begin{tabular}{|l|r|}
         \hline
         测例 & 耗时 \\
         \hline
@@ -113,7 +113,7 @@ NPUcore性能得分如下:
 
 \begin{table}
     \centering
-    \begin{tabular}{|c|c|}
+    \begin{tabular}{|l|r|}
         \hline
         测例 & 耗时 \\
         \hline
@@ -174,6 +174,58 @@ NPUcore性能得分如下:
     \end{tabular}
     \caption{libc-bench}
 \end{table}
+
+\begin{table}[h]
+    \centering
+    \begin{tabular}{|l|r|}
+    \hline
+        测试项 & 得分 \\
+        \hline
+        DHRY2 (lps) & 48523418 \\
+        \hline
+        WHETSTONE (MFLOPS) & 1014.102 \\
+        \hline
+        SYSCALL (lps) & 547678 \\
+        \hline
+        CONTEXT (lps) & 42416 \\
+        \hline
+        PIPE (lps) & 802449 \\
+        \hline
+        SPAWN (lps) & 13586 \\
+        \hline
+        ARITHOH (lps) & 5541357804 \\
+        \hline
+        SHORT (lps) & 140413305 \\
+        \hline
+        INT (lps) & 140311940 \\
+        \hline
+        LONG (lps) & 140287530 \\
+        \hline
+        FLOAT (lps) & 142030413 \\
+        \hline
+        DOUBLE (lps) & 141484435 \\
+        \hline
+        HANOI (lps) & 536762 \\
+    \hline
+    \end{tabular}
+    \caption{plntry的Unixbench}
+    \label{tab:unixbench}
+\end{table}
+
+通过比较Npucore和plntry的libc-bench和Unix-bench可以发现，在libc-bench中，Npucore的和plntry的所耗时间比较相似，这与测例的相对简单有比较大的关系。但是在Unix-bench中，plntry的部分性能得分优于Npucore。例如SYSCALL (lps),CONTEXT (lps),PIPE (lps),当然Npucore也有比plntry表现更良好的测试项，比如DHRY2 test(lps)， SPAWN test(lps)等。
+
+"syscall" 测试是一个基准测试，用于评估系统在执行系统调用（syscalls）时的性能。系统调用是操作系统提供给用户空间程序访问操作系统内核功能的接口。
+这个测试旨在测量系统在执行各种系统调用时的效率和速度。UnixBench会执行一系列常见的系统调用，比如文件操作、进程控制、内存管理等，然后测量系统在执行这些调用时所需的时间和性能。
+"syscall" 测试的结果以每秒钟能够执行的系统调用数量（lps - syscalls per second）作为单位，因此其结果值越高表示系统在处理系统调用时的效率越高，执行系统调用的能力也就越强。
+
+UnixBench中的 "CONTEXT" 测试是用来评估系统在上下文切换方面的性能。上下文切换是操作系统在多任务环境中切换执行不同进程或线程时所需的过程。
+"CONTEXT" 测试测量系统在进行上下文切换时的效率，它涉及将处理器从一个进程或线程切换到另一个的能力。在多任务系统中，上下文切换是一种常见操作，而系统的性能可能会受到其影响。
+测试结果以每秒钟能够完成的上下文切换数量（lps - context switches per second）作为单位。因此，较高的数值表示系统在处理上下文切换时更有效率，能够更快地在不同的进程或线程之间进行切换。
+
+"spawn" 测试是一个基准测试，用于评估系统在并发进程创建和销毁方面的性能。该测试模拟了系统同时启动多个进程的情况，然后检查系统在这种高并发情况下的性能表现。
+"spawn" 测试通常会创建许多子进程，然后立即销毁它们，以测试系统处理这些操作的速度和效率。这个测试可以显示系统在处理并发任务时的能力，因为进程的创建和销毁在某些应用场景下可能是非常常见的操作。
+UnixBench中的 "spawn" 测试的结果以每秒钟能够创建和销毁的进程数（lps - processes per second）作为单位，因此其结果值越高表示系统在这个方面的性能越好。
+
 
 性能优秀的原因:
 \begin{itemize}
