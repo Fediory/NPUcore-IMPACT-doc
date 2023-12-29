@@ -85,6 +85,64 @@ NPUcore 的“扩容”集成优化方法，效果极其显著。这一套虚拟
 
 \textbf{优化方法与评估}
 
-为了让 NPUcore 在读写 SD 失败后具有错误恢复的能力 ，我们对 SD 卡驱动程序进行了完善，以提高 NPUcore 的稳定性。
+为了让 NPUcore 在读写 SD 失败后具有错误恢复的能力 ，我们对 SD 卡驱动程序进行了完善，以提高 NPUcore 的稳定性。整个 SD 卡驱动恢复过程的伪代码如下所示。
+
+\begin{algorithm}[tb]
+	\caption{SD卡驱动恢复方法}
+	\label{alg:sdcard_recovery}
+	\textbf{Input}: block\_id, buf\\
+	\textbf{Output}: None~or~SUCCESS
+	\begin{algorithmic}[1] %[1] enables line numbers
+		
+		\State \textbf{let} $result = self.write\_sector(buf, block\_id)$
+		\State \textbf{let} $cont\_cnt = 0$
+		
+		\While{$result~~is~~error$ }
+		\If{$cont\_cnt >= 0$}
+		\State $log\_error("[sdcard]~~write\_sector(buf,~block\_id)~~error.~~Retrying...")$
+		\State $result=self.write\_sector(buf,~block\_id)$
+		\EndIf
+		
+		\State $cont\_cnt = cont\_cnt + 1$
+		
+		\If{$cont\_cnt >= 5$}
+		\State $log\_error("[sdcard]~~write_sector(buf[length(buf)],~~block\_id)~~error~~exceeded~~continuous~~retry~~count,~~waiting...")$
+		\State $self.wait\_for\_one\_second$
+		
+		\If{$self.write\_sector(buf,~block\_id)$ is error}
+		\State $self.init$
+		\State $self.wait\_for\_one\_second$
+		\Else
+		\State \textbf{break}
+		\EndIf
+		
+		\State $cont\_cnt = 0$
+		\EndIf
+		\EndWhile
+	\end{algorithmic}
+\end{algorithm}
+
+正如伪代码所示，在具体的实现上，NPUcore 的 SD 卡驱动恢复方法为：
+
+首先会进行错误判断，如果SD卡驱动读写没完成则会导致失败(SD卡驱动崩溃后驱动函数会返回错误信息)。
+
+至于失败后的恢复过程，多数情况下，会进行5次尝试读写，如果全部失败（返回错误信息）, 则等待1秒，再1次尝试读写；如果再失败，则直接重新初始化整个驱动，再重复整个恢复过程，直到成功。
+
+NPUcore 的 SD 卡驱动恢复方法，成效显著。为了验证其效果，使用下列命令:
+
+\begin{lstlisting}[language=bash]
+	while true; do 
+	   ./run-all.sh; 
+	done
+\end{lstlisting}
+
+进行压力测试，如图\ref{fig:SD recovery}所示。最终，NPUcore 可以在 k210 开发板上连续正确运行6个小时！这项改进也被其他参赛队伍引用
+
+\begin{figure}[h]
+	\centering
+	\includegraphics[width=0.55\textwidth]{figures/10-04-SD卡驱动读写错误恢复方法效果实验评估.png}
+	\caption{SD卡驱动恢复方法效果实验评估}
+	\label{fig:SD recovery}
+\end{figure}
 
 
