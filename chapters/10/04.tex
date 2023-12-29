@@ -9,7 +9,7 @@
 
 \begin{figure}[H]
 	\centering
-	\includegraphics[width=0.8\textwidth]{figures/10-04-测例ELF.jpg}
+	\includegraphics[width=0.6\textwidth]{figures/10-04-测例ELF.jpg}
 	\caption{测例 ELF 大小}
 	\label{fig:ELF}
 \end{figure}
@@ -18,9 +18,9 @@
 
 3、与此同时，还要受限于 k210 并不宽裕的内存大小，如图\ref{fig:k210}所示，k210 的内存空间已经捉襟见肘。
 
-\begin{figure}[H]
+\begin{figure}[h]
 	\centering
-	\includegraphics[width=0.8\textwidth]{figures/10-04-k210内存空间.jpg}
+	\includegraphics[width=0.38\textwidth]{figures/10-04-k210内存空间.jpg}
 	\caption{k210 内存使用情况}
 	\label{fig:k210}
 \end{figure}
@@ -47,9 +47,9 @@ NPUcore内存采用了一套“扩容”集成优化方法，包括以下策略�
 
 如图\ref{fig:page fault}所示，是我们对相关 Fault 具体的处理方法：
 
-\begin{figure}[H]
+\begin{figure}[h]
 	\centering
-	\includegraphics[width=0.8\textwidth]{figures/10-04-Page fault.jpg}
+	\includegraphics[width=0.65\textwidth]{figures/10-04-Page fault.jpg}
 	\caption{Page Fault 处理方法}
 	\label{fig:page fault}
 \end{figure}
@@ -60,9 +60,9 @@ NPUcore内存采用了一套“扩容”集成优化方法，包括以下策略�
 
 NPUcore 的“扩容”集成优化方法，效果极其显著。这一套虚拟内存管理方法，让应用程序可以感知到更多的可用内存，我们的实验也验证了 NPUcore 内存回收性能的高效。如图\ref{fig:memory test}所示，我们增加的内存管理方法，极大提升内存回收峰值，提高了操作系统的内存回收性能。
 
-\begin{figure}[H]
+\begin{figure}[h]
 	\centering
-	\includegraphics[width=0.8\textwidth]{figures/10-04-内存实验评估.jpg}
+	\includegraphics[width=0.56\textwidth]{figures/10-04-内存实验评估.jpg}
 	\caption{NPUcore 内存回收性能比较}
 	\label{fig:memory test}
 \end{figure}
@@ -74,9 +74,9 @@ NPUcore 的“扩容”集成优化方法，效果极其显著。这一套虚拟
 
 在运行 libc-test 测试，k210 板 SD 卡驱动在运行多个用户程序时，内存占用率过高时会出现不稳定。 如图\ref{fig:SD error}所示，rCore Tutorial 系统在压力测试下SD卡驱动读写异常。
 
-\begin{figure}[H]
+\begin{figure}[h]
 	\centering
-	\includegraphics[width=0.8\textwidth]{figures/10-04-SD卡驱动异常.jpg}
+	\includegraphics[width=0.55\textwidth]{figures/10-04-SD卡驱动异常.jpg}
 	\caption{压力测试下SD卡驱动读写异常}
 	\label{fig:SD error}
 \end{figure}
@@ -85,6 +85,6 @@ NPUcore 的“扩容”集成优化方法，效果极其显著。这一套虚拟
 
 \textbf{优化方法与评估}
 
-为了让 NPUcore 在读写 SD 失败后具有错误恢复的能力 ，我们在 SD 卡驱动程序中进行了完善，以提高 NPUcore 的稳定性。
+为了让 NPUcore 在读写 SD 失败后具有错误恢复的能力 ，我们对 SD 卡驱动程序进行了完善，以提高 NPUcore 的稳定性。
 
 
