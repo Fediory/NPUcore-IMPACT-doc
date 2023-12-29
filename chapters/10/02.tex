@@ -1,4 +1,17 @@
 \section{支持运行Lmbench}
+\begin{table}[!ht]
+   	\centering
+   	\begin{tabular}{|c|c|c|c|c|}
+   		\hline
+   		\textbf{方法} & \textbf{运行环境} & \textbf{对象} & \textbf{结果} & \textbf{原理} \\
+   		\hline
+   		objdump+grep & Linux & 二进制文件 & 测例的所有系统调用 & 参见chapter09-03 \\ \hline
+   		strace & Debian+RISCV64 & 运行的进程 & 单个测例的系统调用 &  参见chapter10-02 \\
+   		\hline
+   	\end{tabular}
+   	\caption{提取系统调用的方法}
+   	\label{提取系统调用的方法}
+   \end{table}
 要从lmbench二进制文件中提取出相关的系统调用，过程基本与提取busybox的系统调用类似。
 仍然可以用一行命令完成。
 
