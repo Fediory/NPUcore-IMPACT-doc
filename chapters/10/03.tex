@@ -6,49 +6,49 @@ NPUcore性能得分如下:
 
 \begin{table}[H]
     \centering
-    \begin{tabular}{|l|r|}
+    \begin{tabular}{|l|c|r|}
         \hline
-        测例 & 耗时 \\
+        \textbf{测例} & \textbf{耗时} & \textbf{基准程序} \\
         \hline
-        b\_malloc\_tiny2 (0) & 0.005085920 \\
+        b\_malloc\_tiny2 (0) & 0.005085920 & 0.008827947\\
         \hline
-        b\_malloc\_big2 (0) & 0.028311200 \\
+        b\_malloc\_big2 (0) & 0.028311200 & 0.092570898 \\
         \hline
-        b\_malloc\_thread\_stress (0) & 0.066339520 \\
+        b\_malloc\_thread\_stress (0) & 0.066339520 & 0.078210295\\
         \hline
-        b\_string\_strstr ("abcdefghijklmnopqrstuvwxyz") & 0.011712000 \\
+        b\_string\_strstr ("abcdefghijklmnopqrstuvwxyz") & 0.011712000 &0.014879018\\
         \hline
-        b\_string\_strstr ("azbycxdwevfugthsirjqkplomn") & 0.017838240 \\
+        b\_string\_strstr ("azbycxdwevfugthsirjqkplomn") & 0.017838240 &0.022160122\\
         \hline
-        b\_string\_strstr ("aaaaaaaaaaaaaacccccccccccc") & 0.011262640 \\
+        b\_string\_strstr ("aaaaaaaaaaaaaacccccccccccc") & 0.011262640 &0.013371076\\
         \hline
-        b\_string\_strstr ("aaaaaaaaaaaaaaaaaaaaaaaaac") & 0.010942000 \\
+        b\_string\_strstr ("aaaaaaaaaaaaaaaaaaaaaaaaac") & 0.010942000 &0.013494579\\
         \hline
-        b\_string\_strstr ("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaac") & 0.013523120 \\
+        b\_string\_strstr ("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaac") & 0.013523120 &0.016474362\\
         \hline
-        b\_string\_memset (0) & 0.009740400 \\
+        b\_string\_memset (0) & 0.009740400 &0.010840004\\
         \hline
-        b\_string\_strchr (0) & 0.011392640 \\
+        b\_string\_strchr (0) & 0.011392640 &0.013300974\\
         \hline
-        b\_string\_strlen (0) & 0.009787360 \\
+        b\_string\_strlen (0) & 0.009787360 &0.011389320\\
         \hline
-        b\_pthread\_createjoin\_serial1 (0) & 0.439336960 \\
+        b\_pthread\_createjoin\_serial1 (0) & 0.439336960 &1.087431144\\
         \hline
-        b\_pthread\_createjoin\_serial2 (0) & 0.426977760 \\
+        b\_pthread\_createjoin\_serial2 (0) & 0.426977760 &0.861784643\\
         \hline
-        b\_pthread\_create\_serial1 (0) & 0.476990480 \\
+        b\_pthread\_create\_serial1 (0) & 0.476990480 &0.785009610\\
         \hline
-        b\_pthread\_uselesslock (0) & 0.060514480 \\
+        b\_pthread\_uselesslock (0) & 0.060514480 &0.067189695\\
         \hline
-        b\_utf8\_bigbuf (0) & 0.032511520 \\
+        b\_utf8\_bigbuf (0) & 0.032511520 &0.035250394\\
         \hline
-        b\_utf8\_onebyone (0) & 0.091743280 \\
+        b\_utf8\_onebyone (0) & 0.091743280 &0.114485028\\
         \hline
-        b\_stdio\_putcgetc (0) & 0.439399360 \\
+        b\_stdio\_putcgetc (0) & 0.439399360 &0.764247677\\
         \hline
-        b\_stdio\_putcgetc\_unlocked (0) & 0.426097680 \\
+        b\_stdio\_putcgetc\_unlocked (0) & 0.426097680 &0.752266360\\
         \hline
-        b\_regex\_compile ("(a|b|c)*d*b") & 0.057043200 \\
+        b\_regex\_compile ("(a|b|c)*d*b") & 0.057043200 &0.071444121\\
         \hline
     \end{tabular}
     \caption{Npucore的libc-bench}
@@ -56,39 +56,39 @@ NPUcore性能得分如下:
 
 \begin{table}[H]
     \centering
-    \begin{tabular}{|l|r|}
+    \begin{tabular}{|l|c|r|}
         \hline
-        \textbf{测试名称} & \textbf{数值} \\
+        \textbf{测例} & \textbf{数值} &\textbf{基准程序}\\
         \hline
-        Unixbench DHRY2 test(lps) & 61405230 \\
+        Unixbench DHRY2 test(lps) & 61405230 &49005063\\
         \hline
-        Unixbench WHETSTONE test(MFLOPS) & 1269.670 \\
+        Unixbench WHETSTONE test(MFLOPS) & 1269.670 &1026.820\\
         \hline
-        Unixbench SYSCALL test(lps) & 222615 \\
+        Unixbench SYSCALL test(lps) & 222615 &2416696\\
         \hline
-        Unixbench CONTEXT test(lps) & 168113 \\
+        Unixbench CONTEXT test(lps) & 168113 &80174\\
         \hline
-        Unixbench PIPE test(lps) & 413979 \\
+        Unixbench PIPE test(lps) & 413979 &330556\\
         \hline
-        Unixbench SPAWN test(lps) & 64394 \\
+        Unixbench SPAWN test(lps) & 64394 &16686\\
         \hline
-        Unixbench EXECL test(lps) & 73597 \\
+        Unixbench EXECL test(lps) & 73597 &6645\\
         \hline
-        Unixbench ARITHOH test(lps) & 7032261867 \\
+        Unixbench ARITHOH test(lps) & 7032261867 &5718673825\\
         \hline
-        Unixbench SHORT test(lps) & 179342297 \\
+        Unixbench SHORT test(lps) & 179342297 &147678033\\
         \hline
-        Unixbench INT test(lps) & 179660281 \\
+        Unixbench INT test(lps) & 179660281 &148128134\\
         \hline
-        Unixbench LONG test(lps) & 179644882 \\
+        Unixbench LONG test(lps) & 179644882 &153417287\\
         \hline
-        Unixbench FLOAT test(lps) & 178725171 \\
+        Unixbench FLOAT test(lps) & 178725171 &148049012\\
         \hline
-        Unixbench DOUBLE test(lps) & 179034748 \\
+        Unixbench DOUBLE test(lps) & 179034748 &148031827\\
         \hline
-        Unixbench HANOI test(lps) & 677685 \\
+        Unixbench HANOI test(lps) & 677685 &544504\\
         \hline
-        Unixbench EXEC test(lps) & 39493 \\
+        Unixbench EXEC test(lps) & 39493 &945\\
         \hline
     \end{tabular}
     \caption{Npucore的Unixbench测试结果}
