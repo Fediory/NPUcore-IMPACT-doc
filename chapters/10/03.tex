@@ -101,6 +101,142 @@ NPUcore性能得分如下:
 
 \subsubsection{Titanix}
 
+首先，从https://gitlab.eduxiji.net/202318123101314/oskernel2023-Titanix地址克隆仓库，切换到master分支。根据其README说明，
+进入kernel目录并运行sudo make fs-img,镜像构建完成后运行make run启动内核，在内核中运行runtestcase开始运行测例。
+
+下面将展示Titanix的性能得分情况，并与npucore进行简单的对比。
+
+\begin{table}[H]
+    \centering
+    \begin{tabular}{|l|r|}
+        \hline
+        测例 & 耗时 \\
+        \hline
+        b\_malloc\_sparse (0) & 0.307474000 \\
+        \hline
+        b\_malloc\_bubble (0) & 0.302118000 \\
+        \hline
+        b\_malloc\_tiny1 (0) & 0.010716000 \\
+        \hline
+        b\_malloc\_tiny2 (0) & 0.008677000 \\
+        \hline
+        b\_malloc\_big1 (0) & 0.089668000 \\
+        \hline
+        b\_malloc\_big2 (0) & 0.089264000 \\
+        \hline
+        b\_malloc\_thread\_stress (0) & 0.088639000 \\
+        \hline
+        b\_malloc\_thread\_local (0) & 0.084808000 \\
+        \hline
+        b\_string\_strstr ("abcdefghijklmnopqrstuvwxyz") & 0.014637000 \\
+        \hline
+        b\_string\_strstr ("azbycxdwevfugthsirjqkplomn") & 0.022694000 \\
+        \hline
+        b\_string\_strstr ("aaaaaaaaaaaaaacccccccccccc") & 0.014105000 \\
+        \hline
+        b\_string\_strstr ("aaaaaaaaaaaaaaaaaaaaaaaaac") & 0.014031000 \\
+        \hline
+        b\_string\_strstr ("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaac") & 0.017411000 \\
+        \hline
+        b\_string\_memset (0) & 0.012793000 \\
+        \hline
+        b\_string\_strchr (0) & 0.015052000 \\
+        \hline
+        b\_string\_strlen (0) & 0.013102000 \\
+        \hline
+        b\_pthread\_createjoin\_serial1 (0) & 1.643873000 \\
+        \hline
+        b\_pthread\_createjoin\_serial2 (0) & 1.791139000 \\
+        \hline
+        b\_pthread\_create\_serial1 (0) & 2.702702000 \\
+        \hline
+        b\_pthread\_uselesslock (0) & 0.079902000 \\
+        \hline
+        b\_utf8\_bigbuf (0) & 0.035864000 \\
+        \hline
+        b\_utf8\_onebyone (0) & 0.116207000 \\
+        \hline
+        b\_stdio\_putcgetc (0) & 0.621226000 \\
+        \hline
+        b\_stdio\_putcgetc\_unlocked (0) & 0.615693000 \\
+        \hline
+        b\_regex\_compile ("(a|b|c)*d*b") & 0.073049000 \\
+        \hline
+        b\_regex\_search ("(a|b|c)*d*b") & 0.083481000 \\
+        \hline
+        b\_regex\_search ("a\{25\}b") & 0.253847000 \\
+        \hline
+    \end{tabular}
+    \caption{Titanix的libc-bench测试结果}
+\end{table}
+
+\begin{table}[H]
+    \centering
+    \begin{tabular}{|l|r|}
+        \hline
+        测例 & 得分 \\
+        \hline
+        Unixbench DHRY2 test(lps) & 49932495 \\
+        \hline
+        Unixbench WHETSTONE test(MFLOPS) & 997.612 \\
+        \hline
+        Unixbench SYSCALL test(lps) & 1216209 \\
+        \hline
+        Unixbench CONTEXT test(lps) & 54440 \\
+        \hline
+        Unixbench PIPE test(lps) & 162389 \\
+        \hline
+        Unixbench SPAWN test(lps) & 14937 \\
+        \hline
+        Unixbench EXECL test(lps) & 1262 \\
+        \hline
+        Unixbench ARITHOH test(lps) & 5607494736 \\
+        \hline
+        Unixbench SHORT test(lps) & 141948434 \\
+        \hline
+        Unixbench INT test(lps) & 140942140 \\
+        \hline
+        Unixbench LONG test(lps) & 141540178 \\
+        \hline
+        Unixbench FLOAT test(lps) & 141550560 \\
+        \hline
+        Unixbench DOUBLE test(lps) & 142851862 \\
+        \hline
+        Unixbench HANOI test(lps) & 545068 \\
+        \hline
+        Unixbench EXEC test(lps) & 8561 \\
+        \hline
+    \end{tabular}
+    \caption{Titanix的Unixbench测试结果}
+    
+\end{table}
+
+通过比较 Npucore 和 Titanix 的 libc-bench 和 Unix-bench 可以发现,在 libc-bench 中,
+Npucore 的和 Titanix 的所耗时间比较相似，不过Npucore对于进程的创建要表现得更好一些。在 Unix-bench 中，Titanix的部分性能优于Npucore，例如
+SYSCALL (lps),而Npucore在其他方面的得分均略高于Titanix,特别是EXEC test(lps)。
+
+对于Titanix性能表现的分析：
+\begin{itemize}
+    \item 内存管理：
+    实现了页缓存和块缓存以减少IO次数，实现懒分配和写时复制以优化性能。
+    Titanix的懒分配包括三个方面：（1）用户栈的懒分配，进程构建出来时只分配虚拟地址栈空间，当用户访问栈空间时再通过缺页中断分配物理页
+    （2）用户堆的懒分配，与用户栈的懒分配相似，当用户真正读写该堆空间时再通过缺页中断进行物理页分配。（3）mmap 内存段的懒读取，当用户进行 mmap 系统调用时，记录下对应的文件指
+    针以及映射的偏移量范围但不进行实际读取，当用户真正读写到该内存段时再通过缺页中断读取相应文件的相应位置的内容。
+    Titanix的写时复制主要指在进行 fork 系统调用构造出新的进程时，不需要将父进程地址空间的全部内
+    存拷贝一份，而是让子进程与父进程共享物理内存页，这样做的开销就只有修改页表。同时如果某个内存段是懒分配的内存
+    段，便不需要共享物理页，直接新增一个虚拟地址内存段即可。
+    \item 进程管理：
+    Titanix 采用无栈协程的调度方式，所有线程（包括不同进程的线程）共享同一个内核栈，调度起来开销比较小。因为所有协程共用一个栈，所以需要每个协程在堆上维护一个状态机，通过轮询
+    当前的状态进行协程的切换，然后根据状态决定是否需要切换。无栈协程的调度是通过函数返回然后调用另一个函数实现的，而不是像有栈协程那样直接原地更改栈指针。也带来了一定程度的性能优化和安全性保证。
+    \item 文件系统：
+    实现了Inode缓存，可以减少IO次数：Titanix通过设置全局对象 INODE_CACHE，来对可能会使用的 inode 进行缓存，Inode缓存主要用于完成某一个文件的 inode 的文件名哈希值与 inode 自身的映射管理。这样一来，在
+    频繁的访问Inode时可以减少一部分因为查找带来的IO访问磁盘时延，从而达到优化性能的效果。
+    
+    Titanix通过在Inode和实际文件名之间建立哈希映射来实现对文件的快速查找：当传入一个文件名时，调用实现的 hash_name 方法进行哈希值的计算，并从构建的全局哈希表当中获取该 inode 的
+    Arc 引用，即查找到了对应文件。
+
+
+\end{itemize}
 
 \subsubsection{PLNTRY}
 
