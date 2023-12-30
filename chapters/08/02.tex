@@ -155,25 +155,40 @@
 \begin{enumerate}
 	\item \textbf{编译操作系统内核}
 	
-	从github上获取NPUcore源码后，使用make命令可以编译内核。编译完成后，会生成os.bin文件，这个便是烧入开发板的内核镜像。由于NPUcore直接使用的是risc-v64的交叉编译工具，该操作可以直接生成risc-v64内核。
+	熟悉了开发板的相关结构与操作之后，我们开始在开发板上运行NPUcore。用于开发板上的NPUcore源码与在Qemu上运行的源码有所不同，需要重新获取。以下时获取方式：
+	
+	\begin{lstlisting}[language={Rust}]
+git clone https://gitlab.eduxiji.net/202310699101073/oskernel2023-npucore-plus.git
+		
+	\end{lstlisting}
+	
+	以上获取的仓库有多个分支，分别用于不同开发板。本书只介绍星光二号开发板上的运行过程，其他开发板上的运行方式类似，读者可以自行探索。这里获取的代码默认是master分支，需要切换分支,使用下列命令：
+	
+	\begin{lstlisting}[language={Rust}]
+	git switch comp-2-starfive
+	\end{lstlisting}
+	
+	在仓库根目录下使用命令可以编译内核:
+	
+	\begin{lstlisting}[language={Rust}]
+	make
+	\end{lstlisting}
+	
+	编译完成后，会生成os.bin文件，这个便是烧入开发板的内核镜像。由于NPUcore直接使用的是risc-v64的交叉编译工具，该操作可以直接生成risc-v64内核。
 	
 	\item \textbf{串口连接开发板}
 	
-	目前使用的星光二号开发板需要使用串口实现交互。可使用的串口工具种类较多，这里以windows操作系统为例，使用
-	MobaXterm 工具连接串口。
+	目前使用的星光二号开发板需要使用串口实现交互。可使用的串口工具种类较多，这里以windows操作系统为例，linux系统的相关串口操作已经在第8章第一节“基于嵌入式硬件的操作系统开发流程”中给出，读者可以自行查看，这里使用MobaXterm 工具连接串口。
 	
-	首先将连接好的开发板插入电脑，开发板指示灯亮起（红色），串口转化器指示灯亮起（红色常亮，有蓝色灯闪烁），说明连接正常。
-	~~
+	如下图所示，首先将连接好的开发板插入计算机，开发板红色指示灯亮起（\ding{172}处） ，串口转化器指示灯红色常亮，有蓝色灯闪烁（\ding{173}处），说明连接正常。
 	
 	\centering
 	\includegraphics[width=0.9\linewidth]{figures/08-02-星光二号线路.jpg}
-	
-	
 	\raggedright
 	
 	
-	打开MobaXterm软件，显示界面如下图：
-	
+	打开MobaXterm软件，显示界面如下图所示：
+
 	\centering
 	\includegraphics[width=0.9\linewidth]{figures/08-02-MobaXterm界面.jpg}
 	
@@ -205,7 +220,7 @@
 	
 	\raggedright
 	
-	切换为英文输入法，输入任意字符，回车，观察到开发板终端的输出：
+	输入任意字符回车，观察到开发板终端的输出：
 	
 	\centering
 	\includegraphics[width=0.9\linewidth]{figures/08-02-串口输出.jpg}
@@ -228,50 +243,79 @@
 	
 	\raggedright
 	
-	在右方“Root directory”可以设置tftp服务器根地址，也就是开发板可以访问到的目录路径。左上角点击运行按钮可以运行tftp服务：
+	在右方“Root directory”可以设置tftp服务器根地址，也就是开发板可以访问到的目录路径，左上角点击运行按钮可以运行tftp服务。
 	
 	这时tftp服务器搭建成功，但是需要设置IP地址，将开发板和服务器设置为相同子网，才可以使用tftp服务。
 	
 	如果终端使用的是自动获取IP地址，则可以通过以下命令查看IP地址：
 	
-	ifconfig
+	\begin{lstlisting}[language={Rust}]
+		ifconfig
+	\end{lstlisting}
+	
 	
 	如果使用的是手动设置的IP地址，以上方法也可以查看。如果需要检查连通性，可使用ping命令，例如如果查到终端IP地址为168.254.242.234，则可以使用如下命令：
 	
+	\begin{lstlisting}[language={Rust}]
 	ping 168.254.242.234
+	\end{lstlisting}
+	
 	
 	在“StarFive \#”终端提示符下，输入以下命令设置开发板IP地址：
 	
+	\begin{lstlisting}[language={Rust}]
 	setenv ipaddr 168.254.242.233
+	\end{lstlisting}
 	
 	此处需要和终端IP地址不同但是需要和终端IP在同一个局域网中。
 	
 	执行以下命令设置服务器IP地址：
 	
+	\begin{lstlisting}[language={Rust}]
 	setenv serverip 168.254.242.234
+	\end{lstlisting}
 	
 	确认os.bin已经在tftp服务器根目录下，并且tftp服务是打开状态，输入下面命令：
 	
+	\begin{lstlisting}[language={Rust}]
 	tftpboot 0x80200000 os.bin
+	\end{lstlisting}
 	
-	便可以将内核镜像下载到开发板上，并设置起始地址为0x80200000。正常执行结果如下：
+	便可以将内核镜像下载到开发板上，并设置起始地址为0x80200000。这个地址说明开发板上将从0x80200000开始取值。
+	
+	如果终端无法自动获取IP地址，则需要读者自行设置终端IP地址。在windows设置中选择“网络和Internet”->“以太网”，如下图：
+	
+	\centering
+	\includegraphics[width=0.9\linewidth]{figures/08-02-以太网设置界面.jpg}
+	\raggedright
+	
+	打开终端网口对应的网络设置。
+	
+	\centering
+	\includegraphics[width=0.9\linewidth]{figures/08-02-网络IP设置.jpg}
+	\raggedright
+	
+	找到“IP设置”部分，点击“编辑”，按照如图所示打开IPv4，并填写IP地址，子网前缀长度，网关。这样终端的IP地址就设置为相应的IP地址了。
+	
+	这里涉及到了部分IP地址相关的知识，再次强调读者要保证开发板和终端的地址处在同一局域网中，也就是网络号相同。这样才能搭建tftp服务器。
 	
 	\item \textbf{运行内核}
 	
 	上述过程已经将内核镜像下载到开发板上，而且设置了起始地址为0x80200000。接下来输入以下命令便可以开始运行内核：
 	
+	\begin{lstlisting}[language={Rust}]
 	go 0x80200000
+	\end{lstlisting}
 	
 	运行结果如下：
 	
 	
 	\centering
-	\includegraphics[width=0.58\linewidth]{figures/08-02-内核运行.jpg}
-	
-	
+	\includegraphics[width=0.9\linewidth]{figures/08-02-内核运行.jpg}
 	\raggedright
+
 	
-	自此内核启动完成。
+	至此内核启动完成。
 	
 	
 	
