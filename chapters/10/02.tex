@@ -1,4 +1,17 @@
-subsection{支持运行Lmbench}
+\section{支持运行Lmbench}
+\begin{table}[!ht]
+   	\centering
+   	\begin{tabular}{|c|c|c|c|c|}
+   		\hline
+   		\textbf{方法} & \textbf{运行环境} & \textbf{对象} & \textbf{结果} & \textbf{原理} \\
+   		\hline
+   		objdump+grep & Linux & 二进制文件 & 测例的所有系统调用 & 参见chapter09-03 \\ \hline
+   		strace & Debian+RISCV64 & 运行的进程 & 单个测例的系统调用 &  参见chapter10-02 \\
+   		\hline
+   	\end{tabular}
+   	\caption{提取系统调用的方法}
+   	\label{提取系统调用的方法}
+   \end{table}
 要从lmbench二进制文件中提取出相关的系统调用，过程基本与提取busybox的系统调用类似。
 仍然可以用一行命令完成。
 
@@ -12,6 +25,63 @@ subsection{支持运行Lmbench}
 \end{lstlisting}
 
 上述命令的详细解释，请参考第九章第三节，在此不再赘述。
+
+而在实际情况中，还可能出现需要查看某条命令调用系统调用的情况，而反汇编并提取系统调用的方式，粒度过大，无法满足我们的要求。
+以lmbench为例，给出两种可能的查看系统调用的方法。
+
+第一种，阅读lmbench的源代码。lmbench的入口在 ~/testsuits-for-oskernel/lmbench/src 文件夹下的 lmbench_all.c 中。这种方法极其繁琐复杂，不推荐。
+
+我们推荐使用第二种方法，也就是利用strace工具捕捉程序运行时调用的系统调用。
+strace 是一个用于 Linux 的诊断、调试和指导用户空间实用程序。它用于监视和篡改进程与 Linux 内核之间的交互，包括系统调用、信号传递和进程状态的更改。
+
+
+\begin{lstlisting}[language=bash]
+    # 提取出一条指令使用的系统调用，并以摘要形式给出系统调用列表。注意执行环境为QEMU（RISCV64+Debian）
+     strace -c -f -e trace=all -o trace_output.txt <命令>
+\end{lstlisting}
+
+例如，对于 lmbench 检测 write 系统调用性能的命令 lmbench_all lat_syscall -P 1 write ，可以使用如下指令。
+
+\begin{lstlisting}[language=bash]
+      strace -c -f -e trace=all -o trace_output.txt ./lmbench_all lat_syscall -P 1 write
+\end{lstlisting}
+
+执行结果如下，会给出系统调用的列表。
+\begin{lstlisting}[language=bash]
+	root@debian:~/20231228# cat trace_output.txt
+	% time     seconds  usecs/call     calls    errors syscall
+	------ ----------- ----------- --------- --------- ----------------
+	 58.11    0.044731       44731         1           wait4
+	 28.03    0.021578          47       452           write
+	  5.78    0.004450          13       332           getrusage
+	  3.72    0.002864        2864         1           execve
+	  0.73    0.000562          43        13           close
+	  0.72    0.000558         558         1           readlinkat
+	  0.67    0.000515          85         6           pselect6
+	  0.64    0.000492          30        16           getppid
+	  0.42    0.000320          53         6           read
+	  0.34    0.000258          32         8           rt_sigaction
+	  0.26    0.000200          50         4           brk
+	  0.19    0.000150         150         1           openat
+	  0.18    0.000140          70         2           setitimer
+	  0.16    0.000121         121         1           mprotect
+	  0.05    0.000040          40         1           uname
+	  0.00    0.000000           0         4           pipe2
+	  0.00    0.000000           0         1           clone
+	------ ----------- ----------- --------- --------- ----------------
+	100.00    0.076979          90       850           total
+\end{lstlisting}
+
+针对无法编译得到lmbench可执行文件的问题，我们可以利用大赛发布的SD卡镜像，将其挂载到我们的目录下，在此给出相关命令。
+
+\begin{lstlisting}[language=bash]
+     	mkdir mnt
+	# 挂载到mnt下
+	sudo mount -o loop sdcard.img mnt
+	# 使用完之后，取消挂载
+	umount mnt
+\end{lstlisting}
+
 
 在本节中，我们通过比较得到Lmbench中存在\textbf{17}条完全不同于Busybox中的系统调用。
 
