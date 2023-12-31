@@ -8,7 +8,7 @@ MMC是MultiMediaCard的缩写，即多媒体卡。它是一种非易失性存储
 
 \subsubsection{什么是SD卡}
 
-SD卡为Secure Digital Memory Card, 即安全数码卡。它在MMC的基础上发展而来，增加了两个主要特色：SD卡强调数据的安全安全，可以设定所储存的使用权限，防止数据被他人复制;另外一个特色就是传输速度比2.11版的MMC卡快。在数据传输和物理规范上，SD卡(24mm*32mm*2.1mm,比MMC卡更厚一点)，向前兼容了MMC卡.所有支持SD卡的设备也支持MMC卡。SD卡和2.11版的MMC卡完全兼容。SD卡内部结构如图所示:
+SD卡为Secure Digital Memory Card, 即安全数码卡。它在MMC的基础上发展而来，增加了两个主要特色：SD卡强调数据的安全安全，可以设定所储存的使用权限，防止数据被他人复制;另外一个特色就是传输速度比2.11版的MMC卡快。在数据传输和物理规范上，SD卡(24mm*32mm*2.1mm,比MMC卡更厚一点)，向前兼容了MMC卡。所有支持SD卡的设备也支持MMC卡。SD卡和2.11版的MMC卡完全兼容。SD卡内部结构如图所示:
 \begin{figure}[H]
 	\centering
 	\includegraphics[width=0.5\textwidth]{figures/06-02-SD.jpg}
@@ -173,7 +173,7 @@ CID为一个16个字节的寄存器，该寄存器包含一个独特的卡标识
 
 SD/SDIO有以下几种传输模式：
 \begin{itemize}
-	\item SPI mode，独立序列输入和独立序列输出，使⽤CS、DI、SCLK与DO（SD卡的片选、数据输入、时钟与数据输出）四根信号线进行数据传输。
+	\item SPI mode，独立序列输入和独立序列输出，使用CS、DI、SCLK与DO（SD卡的片选、数据输入、时钟与数据输出）四根信号线进行数据传输。
 	\item 1-bit mode，独立指令和数据通道，只支持1位宽的数据传输。
 	\item 4-bit mode，使用额外的针脚以及某些重新设置的针脚。支持四位宽的并行传输。
 \end{itemize}
@@ -212,8 +212,7 @@ K210 裸机使用SD卡，下图是SD卡对应接口：
 应用程序通过文件系统接口如open()、read()、write()、close()等访问文件系统，根据文件系统inode节点，接着找到文件在SD卡驱动上的块号。文件系统通过块设备驱动层与SD卡协议层对接，块设备驱动层定义了抽象块设备的接口，主要包括对块设备的读写接口。SD卡协议层主要负责按照SD卡标准规范向SD卡发送指令或者接收响应数据；硬件接口层则负责按照硬件板卡的引脚定义操作GPIO或SPI引脚实现与SD卡的数据交互。
 
 \subsection{SD卡的命令}
-　
-SD卡命令共分为12类，分别为class0到Class11（注：完整细节请自行参考SD卡协议官方文档）。
+SD卡命令共分为12类，分别为Class0到Class11。
 
 
 Class0：卡的识别、初始化等基本命令集
@@ -251,7 +250,7 @@ Class6：写保护命令集
 \begin{itemize}
 	\item CMD28:设置写保护块的地址。
 	\item CMD29:擦除写保护块的地址。
-	\item CMD30: Ask the card for the status of the write protection bits
+	\item CMD30: Ask the card for the status of the write protection bits。
 \end{itemize}
 
 Class7：卡的锁定，解锁功能命令集。
@@ -260,10 +259,11 @@ Class8：申请特定命令集 。
 
 Class10 - 11：保留。
 
+（注：完整细节请自行参考SD卡协议官方文档）。
 
 \subsection{SD卡工作流程}
 
-SD卡工作流程大致可以分为3个大的步骤：初始化SD卡、写SD卡、读SD卡。在SPI模式下，SD卡工作模式分为卡识别模式和数据传输模式。如下图为卡在识别模式下的命令流程。
+SD卡工作流程大致可以分为3个大的步骤：初始化SD卡、写SD卡、读SD卡。在SPI模式下，SD卡工作模式分为SD卡识别模式和数据传输模式。如下图为SD卡在识别模式下的命令流程。
 
 \begin{figure}[H]
     \centering
@@ -272,7 +272,7 @@ SD卡工作流程大致可以分为3个大的步骤：初始化SD卡、写SD卡�
 \end{figure}
 
 
-在复位后，查找总线上的新卡的时候，主机会处于“卡识别模式”。卡在复位后会处于识别模式。不同的SD卡可能支持不同版本的协议或者不同的⼯作电压。因此，作为主机，在与SD卡进行交互之初，主机需要获取卡的工作电压范围和卡的类型。在卡识别期间，时钟频率应该保持在100~400kHZ之间。
+在复位后，查找总线上的新卡的时候，主机会处于“卡识别模式”。SD卡在复位后会处于识别模式。不同的SD卡可能支持不同版本的协议或者不同的⼯作电压。因此，作为主机，在与SD卡进行交互之初，主机需要获取SD卡的工作电压范围和卡的类型。在SD卡识别期间，时钟频率应该保持在100 - 400kHZ之间。
 
 \begin{enumerate}
 	\item 在主机和SD卡进行任何通信之前，主机不知道SD卡支持的工作电压范围，卡也不知道是否支持主机当前提供的电压。因此主机首先使用默认的电压发送一条reset指令(CMD0)。
@@ -282,16 +282,16 @@ SD卡工作流程大致可以分为3个大的步骤：初始化SD卡、写SD卡�
 	\item 在主机发出复位命令(CMD0)后，主机将先发送CMD8再发送ACMD41命令重新初始化SD卡。
 \end{enumerate}
 
-当总线被激合后，主机就开始卡的初始化和识别3处理。初始化处理设置它的操作状态和是设置OCR中的HCS比特命令SD\_SEND\_OP\_COND(ACMD41)开始。HCS比特位被设置为1表示主机支持高容量SD卡。HCS被设置为0表示主机不支持高容量SD卡。卡的初始化和识别流程见下图。
+当总线被激合后，主机就开始卡的初始化和识别3处理。初始化处理设置它的操作状态和是设置OCR中的HCS比特命令SD\_SEND\_OP\_COND(ACMD41)开始。HCS比特位被设置为1表示主机支持高容量SD卡。HCS被设置为0表示主机不支持高容量SD卡。SD卡的初始化和识别流程见下图。
 
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.8\textwidth]{figures/06-02-初始化.png}
-    \caption{卡初始化和识别流程}
+    \caption{SD卡初始化和识别流程}
 \end{figure}
 （注：这里不推荐使用NPUCore或rCore作为代码范式来讲解，应直接看SD卡协议文档）
 
-卡在识别模式结束后，主机时钟fpp(数据传输时钟频率)将保存为fod(卡识别模式下的时钟)，由于有些卡对操作时钟有限制。主机必须发送SEND\_CSD(CMD9)来获得卡规格数据积存器内容，如块大小，卡容量。广播命令SET\_DSR(CMD4)配置所有识别卡的驱动阶段。它对DSR积存器进行编程以适应应用总线布局，总线上的卡数目和数据传输频率。SD卡数据传输模式的流程图如下图。
+SD卡在识别模式结束后，主机时钟fpp(数据传输时钟频率)将保存为fod(卡识别模式下的时钟)，由于有些SD卡对操作时钟有限制。主机必须发送SEND\_CSD(CMD9)来获得SD卡规格数据积存器内容，如块大小，卡容量。广播命令SET\_DSR(CMD4)配置所有识别卡的驱动阶段。它对DSR积存器进行编程以适应应用总线布局，总线上的SD卡数目和数据传输频率。SD卡数据传输模式的流程图如下图。
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.8\textwidth]{figures/06-02-数据传输.png}
