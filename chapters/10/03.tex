@@ -2,99 +2,117 @@
 
 \subsection{NPUcore系统调用性能分析}
 
-NPUcore性能得分如下:
+首先我们给出NPUcore，基准程序，与两个其它内核Titanix和PLNTRY在libc-bench和Unixbench测例上的耗时与得分:
 
 \begin{table}[H]
     \centering
-    \begin{tabular}{|l|c|r|}
+    \resizebox{\linewidth}{!}{
+    \begin{tabular}{|l|c|c|c|c|}
         \hline
-        \textbf{测例} & \textbf{耗时} & \textbf{基准程序} \\
+        \textbf{测例}                                   & \textbf{NPUcore}  & \textbf{基准程序}      & \textbf{Titanix}     & \textbf{PLNTRY}\\
         \hline
-        b\_malloc\_tiny2 (0) & 0.005085920 & 0.008827947\\
+        b\_malloc\_sparse (0)                           &   -                   & 0.325008007           & 0.307474000       & 0.749882000           \\
+        \hline                      
+        b\_malloc\_bubble (0)                           &   -                   & 0.299156383           & 0.302118000       & 0.795564000           \\
+        \hline                      
+        b\_malloc\_tiny1 (0)                            &   -                   & 0.011439820           & 0.010716000       & 0.020421000           \\
+        \hline    
+        b\_malloc\_tiny2 (0)                            & 0.005085920           & 0.008827947           & 0.008677000       & 0.013895000           \\
+        \hline      
+        b\_malloc\_big1 (0)                             &   -                   & 0.089668000           & 0.089668000       & 0.205780000           \\
         \hline
-        b\_malloc\_big2 (0) & 0.028311200 & 0.092570898 \\
+        b\_malloc\_big2 (0)                             & 0.028311200           & 0.092570898           & 0.089264000       & 0.159222000           \\
         \hline
-        b\_malloc\_thread\_stress (0) & 0.066339520 & 0.078210295\\
+        b\_malloc\_thread\_stress (0)                   & 0.066339520           & 0.078210295           & 0.088639000       & 0.065488000           \\
         \hline
-        b\_string\_strstr ("abcdefghijklmnopqrstuvwxyz") & 0.011712000 &0.014879018\\
+        b\_malloc\_thread\_local (0)                    &   -                   & 0.076371644           & 0.084808000       & 0.057541000           \\
         \hline
-        b\_string\_strstr ("azbycxdwevfugthsirjqkplomn") & 0.017838240 &0.022160122\\
+        b\_string\_strstr ("abcdefghijklmnopqrstuvwxyz") & 0.011712000          & 0.014879018           & 0.014637000       & 0.014606000           \\
         \hline
-        b\_string\_strstr ("aaaaaaaaaaaaaacccccccccccc") & 0.011262640 &0.013371076\\
+        b\_string\_strstr ("azbycxdwevfugthsirjqkplomn") & 0.017838240          & 0.022160122           & 0.022694000       & 0.022971000           \\
         \hline
-        b\_string\_strstr ("aaaaaaaaaaaaaaaaaaaaaaaaac") & 0.010942000 &0.013494579\\
+        b\_string\_strstr ("aaaaaaaaaaaaaacccccccccccc") & 0.011262640          & 0.013371076           & 0.014105000       & 0.014078000           \\
         \hline
-        b\_string\_strstr ("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaac") & 0.013523120 &0.016474362\\
+        b\_string\_strstr ("aaaaaaaaaaaaaaaaaaaaaaaaac") & 0.010942000          & 0.013494579           & 0.014031000       & 0.013603000           \\
         \hline
-        b\_string\_memset (0) & 0.009740400 &0.010840004\\
+        b\_string\_strstr ("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaac") & 0.013523120   & 0.016474362           & 0.017411000       & 0.017628000           \\
         \hline
-        b\_string\_strchr (0) & 0.011392640 &0.013300974\\
+        b\_string\_memset (0)                            & 0.009740400          & 0.010840004           & 0.012793000       & 0.012005000           \\
         \hline
-        b\_string\_strlen (0) & 0.009787360 &0.011389320\\
+        b\_string\_strchr (0)                            & 0.011392640          & 0.013300974           & 0.015052000       & 0.014630000           \\
         \hline
-        b\_pthread\_createjoin\_serial1 (0) & 0.439336960 &1.087431144\\
+        b\_string\_strlen (0)                            & 0.009787360          & 0.011389320           & 0.013102000       & 0.012690000           \\
         \hline
-        b\_pthread\_createjoin\_serial2 (0) & 0.426977760 &0.861784643\\
+        b\_pthread\_createjoin\_serial1 (0)              & 0.439336960          & 1.087431144           & 1.643873000       & 1.048143000           \\
         \hline
-        b\_pthread\_create\_serial1 (0) & 0.476990480 &0.785009610\\
+        b\_pthread\_createjoin\_serial2 (0)              & 0.426977760          & 0.861784643           & 1.791139000       & 1.020008000           \\
         \hline
-        b\_pthread\_uselesslock (0) & 0.060514480 &0.067189695\\
+        b\_pthread\_create\_serial1 (0)                  & 0.476990480          & 0.785009610           & 2.702702000       & 2.689056000           \\
         \hline
-        b\_utf8\_bigbuf (0) & 0.032511520 &0.035250394\\
+        b\_pthread\_uselesslock (0)                      & 0.060514480          & 0.067189695           & 0.079902000       & 0.078151000           \\
         \hline
-        b\_utf8\_onebyone (0) & 0.091743280 &0.114485028\\
+        b\_utf8\_bigbuf (0)                              & 0.032511520          & 0.035250394           & 0.035864000       & 0.037977000           \\
         \hline
-        b\_stdio\_putcgetc (0) & 0.439399360 &0.764247677\\
+        b\_utf8\_onebyone (0)                            & 0.091743280          & 0.114485028           & 0.116207000       & 0.117029000           \\
         \hline
-        b\_stdio\_putcgetc\_unlocked (0) & 0.426097680 &0.752266360\\
+        b\_stdio\_putcgetc (0)                           & 0.439399360          & 0.764247677           & 0.621226000       & 0.361184000           \\
         \hline
-        b\_regex\_compile ("(a|b|c)*d*b") & 0.057043200 &0.071444121\\
+        b\_stdio\_putcgetc\_unlocked (0)                 & 0.426097680          & 0.752266360           & 0.615693000       & 0.339361000           \\
+        \hline
+        b\_regex\_compile ("(a|b|c)*d*b")                & 0.057043200          & 0.071444121           & 0.073049000       & 0.075878000           \\
+        \hline
+        b\_regex\_search ("(a|b|c)*d*b")                 &   -                  & 0.081086193           & 0.083481000       & 0.086110000           \\
+        \hline
+        b\_regex\_search ("a\{25\}b")                    &   -                  & 0.254820207           & 0.253847000       & 0.256301000           \\
         \hline
     \end{tabular}
-    \caption{Npucore的libc-bench}
+    }
+    \caption{libc-bench耗时，“-”代表NPUcore无法正常执行。}
 \end{table}
 
 \begin{table}[H]
     \centering
-    \begin{tabular}{|l|c|r|}
+    \resizebox{\linewidth}{!}{
+    \begin{tabular}{|l|c|c|c|c|}
         \hline
-        \textbf{测例} & \textbf{数值} &\textbf{基准程序}\\
+        \textbf{测例}                       & \textbf{NPUcore}      &\textbf{基准程序}  & \textbf{Titanix}   & \textbf{PLNTRY}\\
         \hline
-        Unixbench DHRY2 test(lps) & 61405230 &49005063\\
+        Unixbench DHRY2 test(lps)           & 61405230              &49005063       & 49932495              & 48523418  \\
         \hline
-        Unixbench WHETSTONE test(MFLOPS) & 1269.670 &1026.820\\
+        Unixbench WHETSTONE test(MFLOPS)    & 1269.670              &1026.820       & 997.612               & 1014.102  \\
         \hline
-        Unixbench SYSCALL test(lps) & 222615 &2416696\\
+        Unixbench SYSCALL test(lps)         & 222615                &2416696        & 1216209               & 547678    \\
         \hline
-        Unixbench CONTEXT test(lps) & 168113 &80174\\
+        Unixbench CONTEXT test(lps)         & 168113                &80174          & 54440                 & 42416     \\
         \hline
-        Unixbench PIPE test(lps) & 413979 &330556\\
+        Unixbench PIPE test(lps)            & 413979                &330556         & 162389                & 802449    \\
         \hline
-        Unixbench SPAWN test(lps) & 64394 &16686\\
+        Unixbench SPAWN test(lps)           & 64394                 &16686          & 14937                 & 13586     \\
         \hline
-        Unixbench EXECL test(lps) & 73597 &6645\\
+        Unixbench EXECL test(lps)           & 73597                 &6645           & 1262                  & -         \\
         \hline
-        Unixbench ARITHOH test(lps) & 7032261867 &5718673825\\
+        Unixbench ARITHOH test(lps)         & 7032261867            &5718673825     & 5607494736            & 5541357804\\
         \hline
-        Unixbench SHORT test(lps) & 179342297 &147678033\\
+        Unixbench SHORT test(lps)           & 179342297             &147678033      & 141948434             & 140413305 \\
         \hline
-        Unixbench INT test(lps) & 179660281 &148128134\\
+        Unixbench INT test(lps)             & 179660281             &148128134      & 140942140             & 140311940 \\
         \hline
-        Unixbench LONG test(lps) & 179644882 &153417287\\
+        Unixbench LONG test(lps)            & 179644882             &153417287      & 141540178             & 140287530 \\
         \hline
-        Unixbench FLOAT test(lps) & 178725171 &148049012\\
+        Unixbench FLOAT test(lps)           & 178725171             &148049012      & 141550560             & 142030413 \\
         \hline
-        Unixbench DOUBLE test(lps) & 179034748 &148031827\\
+        Unixbench DOUBLE test(lps)          & 179034748             &148031827      & 142851862             & 141484435 \\
         \hline
-        Unixbench HANOI test(lps) & 677685 &544504\\
+        Unixbench HANOI test(lps)           & 677685                &544504         & 545068                & 536762    \\
         \hline
-        Unixbench EXEC test(lps) & 39493 &945\\
+        Unixbench EXEC test(lps)            & 39493                 &945            & 8561                  & -         \\
         \hline
     \end{tabular}
-    \caption{Npucore的Unixbench测试结果}
-    \label{Npucore的Unixbench测试结果}
+    }
+    \caption{Unixbench测试分数，“-”代表PLNTRY无法正常执行。}
+    \label{Unixbench测试结果}
 \end{table}
-我们可以看到，NPUcore的耗时均比基准程序短，Unixbench得分均比基准程序高，这说明NPUcore相较于基准程序，我们在性能提升许多。
+我们可以看到，NPUcore的耗时均比基准程序短，Unixbench得分均比基准程序高，这说明NPUcore相较于基准程序，我们在性能提升许多，但是我们仍有一些测例无法通过。
 例如对于缓存相关测试，NPUcore使用较为激进的缓存策略，Page Cache容量不设上限，所有的内存空间都可以作为缓存使用。即使发生内存不足，NPUcore会根据LRU算法清理无用缓存。
 经过测试发现，在这种缓存策略下运行大多数测例时，对每个文件NPUcore只从外存读取一次，之后的读写全部发生在Cache中，从而带来极大的性能提升。
 而因为对于比赛而言，和基准程序比较不能说明太多问题，应与其它参赛队伍比较，这点我们会在下一章详细分析。
@@ -107,112 +125,7 @@ NPUcore性能得分如下:
 首先，从https://gitlab.eduxiji.net/202318123101314/oskernel2023-Titanix地址克隆仓库，切换到master分支。根据其README说明，
 进入kernel目录并运行sudo make fs-img,镜像构建完成后运行make run启动内核，在内核中运行runtestcase开始运行测例。
 
-下面将展示Titanix的性能得分情况，并与npucore进行简单的对比。
 
-\begin{table}[H]
-    \centering
-    \begin{tabular}{|l|r|}
-        \hline
-        测例 & 耗时 \\
-        \hline
-        b\_malloc\_sparse (0) & 0.307474000 \\
-        \hline
-        b\_malloc\_bubble (0) & 0.302118000 \\
-        \hline
-        b\_malloc\_tiny1 (0) & 0.010716000 \\
-        \hline
-        b\_malloc\_tiny2 (0) & 0.008677000 \\
-        \hline
-        b\_malloc\_big1 (0) & 0.089668000 \\
-        \hline
-        b\_malloc\_big2 (0) & 0.089264000 \\
-        \hline
-        b\_malloc\_thread\_stress (0) & 0.088639000 \\
-        \hline
-        b\_malloc\_thread\_local (0) & 0.084808000 \\
-        \hline
-        b\_string\_strstr ("abcdefghijklmnopqrstuvwxyz") & 0.014637000 \\
-        \hline
-        b\_string\_strstr ("azbycxdwevfugthsirjqkplomn") & 0.022694000 \\
-        \hline
-        b\_string\_strstr ("aaaaaaaaaaaaaacccccccccccc") & 0.014105000 \\
-        \hline
-        b\_string\_strstr ("aaaaaaaaaaaaaaaaaaaaaaaaac") & 0.014031000 \\
-        \hline
-        b\_string\_strstr ("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaac") & 0.017411000 \\
-        \hline
-        b\_string\_memset (0) & 0.012793000 \\
-        \hline
-        b\_string\_strchr (0) & 0.015052000 \\
-        \hline
-        b\_string\_strlen (0) & 0.013102000 \\
-        \hline
-        b\_pthread\_createjoin\_serial1 (0) & 1.643873000 \\
-        \hline
-        b\_pthread\_createjoin\_serial2 (0) & 1.791139000 \\
-        \hline
-        b\_pthread\_create\_serial1 (0) & 2.702702000 \\
-        \hline
-        b\_pthread\_uselesslock (0) & 0.079902000 \\
-        \hline
-        b\_utf8\_bigbuf (0) & 0.035864000 \\
-        \hline
-        b\_utf8\_onebyone (0) & 0.116207000 \\
-        \hline
-        b\_stdio\_putcgetc (0) & 0.621226000 \\
-        \hline
-        b\_stdio\_putcgetc\_unlocked (0) & 0.615693000 \\
-        \hline
-        b\_regex\_compile ("(a|b|c)*d*b") & 0.073049000 \\
-        \hline
-        b\_regex\_search ("(a|b|c)*d*b") & 0.083481000 \\
-        \hline
-        b\_regex\_search ("a\{25\}b") & 0.253847000 \\
-        \hline
-    \end{tabular}
-    \caption{Titanix的libc-bench测试结果}
-\end{table}
-
-\begin{table}[H]
-    \centering
-    \begin{tabular}{|l|r|}
-        \hline
-        测例 & 得分 \\
-        \hline
-        Unixbench DHRY2 test(lps) & 49932495 \\
-        \hline
-        Unixbench WHETSTONE test(MFLOPS) & 997.612 \\
-        \hline
-        Unixbench SYSCALL test(lps) & 1216209 \\
-        \hline
-        Unixbench CONTEXT test(lps) & 54440 \\
-        \hline
-        Unixbench PIPE test(lps) & 162389 \\
-        \hline
-        Unixbench SPAWN test(lps) & 14937 \\
-        \hline
-        Unixbench EXECL test(lps) & 1262 \\
-        \hline
-        Unixbench ARITHOH test(lps) & 5607494736 \\
-        \hline
-        Unixbench SHORT test(lps) & 141948434 \\
-        \hline
-        Unixbench INT test(lps) & 140942140 \\
-        \hline
-        Unixbench LONG test(lps) & 141540178 \\
-        \hline
-        Unixbench FLOAT test(lps) & 141550560 \\
-        \hline
-        Unixbench DOUBLE test(lps) & 142851862 \\
-        \hline
-        Unixbench HANOI test(lps) & 545068 \\
-        \hline
-        Unixbench EXEC test(lps) & 8561 \\
-        \hline
-    \end{tabular}
-    \caption{Titanix的Unixbench测试结果}
-    
-\end{table}
 
 通过比较 Npucore 和 Titanix 的 libc-bench 和 Unix-bench 可以发现,在 libc-bench 中,
 Npucore 的和 Titanix 的所耗时间比较相似，不过Npucore对于进程的创建要表现得更好一些。在 Unix-bench 中，Titanix的部分性能优于Npucore，例如
@@ -248,110 +161,10 @@ SYSCALL (lps),而Npucore在其他方面的得分均略高于Titanix,特别是EXE
 命名为sdcard-comp2.img,在主文件目录下make all,make run即可运行该kernel。
 注意，所有的测试结果不直接在终端显示，而在debug/ qemu.log 中显示。
 
-下面将展示PLNTRY的性能得分情况，并与npucore进行简单的对比。
 
-\begin{table}[H]
-    \centering
-    \begin{tabular}{|l|r|}
-        \hline
-        测例 & 耗时 \\
-        \hline
-        b\_malloc\_sparse (0) & 0.749882000 \\
-        \hline
-        b\_malloc\_bubble (0) & 0.795564000 \\
-        \hline
-        b\_malloc\_tiny1 (0) & 0.020421000 \\
-        \hline
-        b\_malloc\_tiny2 (0) & 0.013895000 \\
-        \hline
-        b\_malloc\_big1 (0) & 0.205780000 \\
-        \hline
-        b\_malloc\_big2 (0) & 0.159222000 \\
-        \hline
-        b\_malloc\_thread\_stress (0) & 0.065488000 \\
-        \hline
-        b\_malloc\_thread\_local (0) & 0.057541000 \\
-        \hline
-        b\_string\_strstr ("abcdefghijklmnopqrstuvwxyz") & 0.014606000 \\
-        \hline
-        b\_string\_strstr ("azbycxdwevfugthsirjqkplomn") & 0.022971000 \\
-        \hline
-        b\_string\_strstr ("aaaaaaaaaaaaaacccccccccccc") & 0.014078000 \\
-        \hline
-        b\_string\_strstr ("aaaaaaaaaaaaaaaaaaaaaaaaac") & 0.013603000 \\
-        \hline
-        b\_string\_strstr ("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaac") & 0.017628000 \\
-        \hline
-        b\_string\_memset (0) & 0.012005000 \\
-        \hline
-        b\_string\_strchr (0) & 0.014630000 \\
-        \hline
-        b\_string\_strlen (0) & 0.012690000 \\
-        \hline
-        b\_pthread\_createjoin\_serial1 (0) & 1.048143000 \\
-        \hline
-        b\_pthread\_createjoin\_serial2 (0) & 1.020008000 \\
-        \hline
-        b\_pthread\_create\_serial1 (0) & 2.689056000 \\
-        \hline
-        b\_pthread\_uselesslock (0) & 0.078151000 \\
-        \hline
-        b\_utf8\_bigbuf (0) & 0.037977000 \\
-        \hline
-        b\_utf8\_onebyone (0) & 0.117029000 \\
-        \hline
-        b\_stdio\_putcgetc (0) & 0.361184000 \\
-        \hline
-        b\_stdio\_putcgetc\_unlocked (0) & 0.339361000 \\
-        \hline
-        b\_regex\_compile ("(a|b|c)*d*b") & 0.075878000 \\
-        \hline
-        b\_regex\_search ("(a|b|c)*d*b") & 0.086110000 \\
-        \hline
-        b\_regex\_search ("a\{25\}b") & 0.256301000 \\
-        \hline
-    \end{tabular}
-    \caption{libc-bench}
-\end{table}
 
-\begin{table}[H]
-    \centering
-    \begin{tabular}{|l|r|}
-    \hline
-        测试项 & 得分 \\
-        \hline
-        DHRY2 (lps) & 48523418 \\
-        \hline
-        WHETSTONE (MFLOPS) & 1014.102 \\
-        \hline
-        SYSCALL (lps) & 547678 \\
-        \hline
-        CONTEXT (lps) & 42416 \\
-        \hline
-        PIPE (lps) & 802449 \\
-        \hline
-        SPAWN (lps) & 13586 \\
-        \hline
-        ARITHOH (lps) & 5541357804 \\
-        \hline
-        SHORT (lps) & 140413305 \\
-        \hline
-        INT (lps) & 140311940 \\
-        \hline
-        LONG (lps) & 140287530 \\
-        \hline
-        FLOAT (lps) & 142030413 \\
-        \hline
-        DOUBLE (lps) & 141484435 \\
-        \hline
-        HANOI (lps) & 536762 \\
-    \hline
-    \end{tabular}
-    \caption{plntry的Unixbench}
-    \label{tab:unixbench}
-\end{table}
 
-通过比较Npucore和plntry的libc-bench和Unix-bench可以发现，在libc-bench中，Npucore的和plntry的所耗时间比较相似，这与测例的相对简单有比较大的关系。但是在Unix-bench中，plntry的部分性能得分优于Npucore。例如SYSCALL (lps),CONTEXT (lps),PIPE (lps),当然Npucore也有比plntry表现更良好的测试项，比如DHRY2 test(lps)， SPAWN test(lps)等。
+通过比较Npucore和PLNTRY的libc-bench和Unix-bench可以发现，在libc-bench中，Npucore的和plntry的所耗时间比较相似，这与测例的相对简单有比较大的关系。但是在Unix-bench中，plntry的部分性能得分优于Npucore。例如SYSCALL (lps),CONTEXT (lps),PIPE (lps),当然Npucore也有比plntry表现更良好的测试项，比如DHRY2 test(lps)， SPAWN test(lps)等。
 
 "syscall" 测试是一个基准测试，用于评估系统在执行系统调用（syscalls）时的性能。系统调用是操作系统提供给用户空间程序访问操作系统内核功能的接口。
 这个测试旨在测量系统在执行各种系统调用时的效率和速度。UnixBench会执行一系列常见的系统调用，比如文件操作、进程控制、内存管理等，然后测量系统在执行这些调用时所需的时间和性能。
