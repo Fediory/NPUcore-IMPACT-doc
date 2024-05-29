@@ -28,17 +28,37 @@
 \tableofcontents                                                               %目录页
 
 \begin{abstract}                                            % 中文摘要开始
-    这是在西北工业大学本科毕业设计、硕博研究生毕业论文格式的要求下的一份 LaTeX
-    文档类模板。使用者无需额外修改格式控制细节，直接在所发布的样例基础上，修改章
-    节标题，撰写内容，即可完成毕业设计论文任务。            %
+   NPUcore-IMPACT是一个使用Rust编写的基于LoongArch架构的类Unix操作系统。本工作基于原先的NPUcore(RISCV)开发迭代并扩展，
+   实现POSIX标准系统调用90个，支持信号机制及线程。
+   目前NPUcore的OS家族支持国际开源RISC-V指令集、硬件开发板（K210、U740、星光二代）及Qemu模拟器，与自主龙芯LoongArch指令集、
+   硬件开发板（2K500／1000／2000、3A5000）及龙芯虚拟机。我们会在后文详细介绍我们工作的增量与OS特色。
+   目前初赛的所有测试用例已经满分通过，下图是我们队伍（NPUcore-IMPACT!!!）的初赛测试通过情况：
+   \begin{figure}[htp]
+    \centering
+    \includegraphics[width=1\linewidth]{figs/abstract.png}
+   \end{figure}
+
+   我们的NPUcore大致由（如图0-1）四个模块构成：Syscall（系统调用）、Memory （内存管理）、Process（进程控制）、File System（文件系统）。
+   \begin{figure}[htp]
+    \centering
+    \includegraphics[width=1\linewidth]{figs/NPUcore整体.png}
+    \caption{NPUcore整体内核框架}
+   \end{figure}
     \begin{keywords}                                        % 中文关键词开始
-        学位论文 \sep 模板 \sep \LaTeX                      %
+        NPUcore \sep OSKernel \sep    LoongArch                %
     \end{keywords}                                          % 中文关键词结束
 \end{abstract}                                              % 中文摘要结束
 
 \mainmatter                                                                    %正文部分
 \sDefault
 \input{chapters/01/01.tex}
+\input{chapters/01/02.tex}
+\input{chapters/01/03.tex}
+\input{chapters/02/01.tex}
+\input{chapters/03/01.tex}
+\input{chapters/03/02.tex}
+\input{chapters/04/01.tex}
+\input{chapters/05/01.tex}
 
 
 \end{document}

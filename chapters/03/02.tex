@@ -1,0 +1,126 @@
+\section{LoongArch的启动步骤}
+首先是 NPUcore 的主函数:
+\begin{lstlisting}[language={rust}, label={code:refill},
+	caption={os/src/main.rs}]
+#[no_mangle]
+pub fn rust_main() -> ! {
+    println!("[kernel] NPUcore-IMAPCT!!! ENTER!");
+    bootstrap_init();
+    mem_clear();
+    console::log_init();
+    move_to_high_address(); \\ img move in kernel
+    println!("[kernel] Console initialized.");
+    mm::init();
+
+    machine_init();
+    println!("[kernel] Hello, world!");
+
+    //machine independent initialization
+    fs::directory_tree::init_fs();
+    task::add_initproc();
+
+    // note that in run_tasks(), there is yet *another* pre_start_init(),
+    // which is used to turn on interrupts in some archs like LoongArch.
+    task::run_tasks();
+    panic!("Unreachable in rust_main!");
+}
+\end{lstlisting}
+我们可以看到, 除了 bootstrap_init() 和 machine_init(), 其他都是平台无关
+的, 因此这里主要介绍平台相关的启动流程。其中, machine_init() 的发生在 mm::init() 后。
+\begin{lstlisting}[language={rust}, label={code:refill},
+	caption={os/src/arch/la64/mod.rs - bootstrap\_init}]
+    pub fn bootstrap_init() {
+        /* if CPUId::read().get_core_id() != 0 {
+         *     loop {}
+         * } */
+        ECfg::empty()
+            .set_line_based_interrupt_vector(LineBasedInterrupt::TIMER)
+            .write();
+        EUEn::read().set_float_point_stat(true).write();
+        // Timer & other Interrupts
+        TIClr::read().clear_timer().write();
+        TCfg::read().set_enable(false).write();
+        CrMd::read()
+            .set_watchpoint_enabled(false)
+            .set_paging(true)
+            .set_ie(false)
+            .write();
+    
+        // Trap/Exception Hanlder initialization.
+        set_kernel_trap_entry();
+        set_machine_err_trap_ent();
+        TLBREntry::read().set_addr(srfill as usize).write();
+    
+        // MMU Setup
+        DMW2::read()
+            .set_plv0(true)
+            .set_plv1(false)
+            .set_plv2(false)
+            .set_plv3(false)
+            .set_vesg(SUC_DMW_VESG)
+            .set_mat(MemoryAccessType::StronglyOrderedUnCached)
+            .write();
+        DMW3::empty().write();
+        //DMW1::empty().write();
+    
+        STLBPS::read().set_ps(PTE_WIDTH_BITS).write();
+        TLBREHi::read().set_page_size(PTE_WIDTH_BITS).write();
+        PWCL::read()
+            .set_ptbase(PAGE_SIZE_BITS)
+            .set_ptwidth(DIR_WIDTH)
+            .set_dir1_base(PAGE_SIZE_BITS + DIR_WIDTH)
+            .set_dir1_width(DIR_WIDTH) // 512*512*4096 should be enough for 256MiB of 2k1000.
+            .set_dir2_base(0)
+            .set_dir2_width(0)
+            .set_pte_width(PTE_WIDTH)
+            .write();
+        PWCH::read()
+            .set_dir3_base(PAGE_SIZE_BITS + DIR_WIDTH * 2)
+            .set_dir3_width(DIR_WIDTH)
+            .set_dir4_base(0)
+            .set_dir4_width(0)
+            .write();
+    
+        println!("[kernel] UART address: {:#x}", UART_BASE);
+        println!("[bootstrap_init] {:?}", PRCfg1::read());
+    }    
+\end{lstlisting}
+我们可以看到, 在上面的启动过程中, 龙芯实际上中断要触发有几个使
+能层：
+\begin{enumerate}
+    \item 中断本身的使能, 来自 ECfg。
+    \item 中断源的使能 (如果存在), e.g. 时钟中断来自 TCfg。
+    \item CrMd: 当前模式寄存器的中断使能。
+    \item 最后是 Trap Handler 相关的设置和内存相关的初始化。
+\end{enumerate}
+对于机器相关初始化, 主要是初始化时钟相关的内容。
+\begin{lstlisting}[language={rust}, label={code:refill},
+	caption={os/src/arch/la64/mod.rs - machine\_init}]
+    pub fn machine_init() {
+    // remap_test not supported for lack of DMW read only privilege support
+    trap::init();
+    get_timer_freq_first_time();
+    /* println!(
+     *     "[machine_init] VALEN: {}, PALEN: {}",
+     *     cfg0.get_valen(),
+     *     cfg0.get_palen()
+     * ); */
+    for i in 0..=6 {
+        let j: usize;
+        unsafe { core::arch::asm!("cpucfg {0},{1}",out(reg) j,in(reg) i) };
+        println!("[CPUCFG {:#x}] {}", i, j);
+    }
+    for i in 0x10..=0x14 {
+        let j: usize;
+        unsafe { core::arch::asm!("cpucfg {0},{1}",out(reg) j,in(reg) i) };
+        println!("[CPUCFG {:#x}] {}", i, j);
+    }
+    println!("{:?}", Misc::read());
+    println!("{:?}", RVACfg::read());
+    println!("[machine_init] MMAP_BASE: {:#x}", MMAP_BASE);
+    trap::enable_timer_interrupt();
+}
+\end{lstlisting}
+之所以将这些内容放到这里, 是因为 LoongArch 下的恒等时钟频率是可以通过指令获取的, 
+如果因此我们获取后存入静态数据区域, 所以需要在
+bss 段被清 0 后才开始处理时钟相关中断。
