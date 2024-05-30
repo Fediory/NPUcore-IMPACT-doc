@@ -1,1 +1,94 @@
-\chapter{NPUcore-IMPACT增量}
+\chapter{NPUcore-IMPACT 增量}
+
+在上述基础上，我们继续做了许多努力，让 NPUcore-IMPACT 通过了初赛的所有测试用例，以及实验性地初步支持了 EXT4 文件系统。
+
+后文我们会分别详细地介绍这两部分的内容。
+
+\section{初赛测试用例}
+
+我们针对性地对初赛的测试用例进行了调试，将问题归类定位到了如下两点。
+
+然后我们分别对每个问题进行了细致的分析，最终逐个击破，通过了初赛的所有测试用例。
+
+\textbf{1. statx 系统调用}
+
+LoongArch 赛道的初赛测试用例中，mmap 与 munmap 这两个测例涉及到了一个新的系统调用 statx。
+
+\begin{lstlisting}[label={man:statx}, caption={statx 手册}]
+NAME
+       statx - get file status (extended)
+
+LIBRARY
+       Standard C library (libc, -lc)
+
+SYNOPSIS
+       #define _GNU_SOURCE          /* See feature_test_macros(7) */
+       #include <fcntl.h>           /* Definition of AT_* constants */
+       #include <sys/stat.h>
+
+       int statx(int dirfd, const char *restrict pathname, int flags,
+                 unsigned int mask, struct statx *restrict statxbuf);
+
+STANDARDS
+       Linux.
+
+HISTORY
+       Linux 4.11, glibc 2.28.
+\end{lstlisting}
+
+如手册 \ref{man:statx} 中所示，这个系统调用涉及了文件信息的获取。
+
+我们为 NPUcore-IMPACT 实现了这个新的系统调用，并与文件系统进行了整合。
+
+\begin{lstlisting}[language={Rust}, caption={statx 系统调用入口}]
+let ret = match syscall_id {
+    // ...
+    SYSCALL_STATX => sys_statx(
+        args[0],
+        args[1] as *const u8,
+        args[2] as u32,
+        args[3] as u32,
+        args[4] as *mut u8,
+    ),
+    // ...
+};
+\end{lstlisting}
+
+\begin{lstlisting}[language={Rust}, caption={statx 系统调用实现}]
+pub trait File: DowncastSync {
+    // ...
+    fn get_statx(&self) -> Statx;
+    // ...
+}
+\end{lstlisting}
+
+随后我们进行了测试，成功通过了 mmap 与 munmap 测试用例。
+
+\textbf{2. 文件描述符分配}
+
+通过对 openat 测试用例进行调试，我们最终发现问题出在操作系统对文件描述符的分配上。
+
+Unix 标准要求操作系统分配文件描述符时，总是分配该进程还未使用的最小的文件描述符；而 NPUcore 回收进程关闭的文件描述符时，使用了一个线性表；操作系统重新分配之前回收的文件描述符时，没有使用表中最小的文件描述符，最终导致出现了问题。
+
+\begin{lstlisting}[language={Rust}, caption={回收文件描述符}]
+match self.inner[fd].take() {
+    Some(file_descriptor) => {
+        self.recycled.push(fd as u8);
+        // TODO: maybe replace this with balanced binary tree?
+        self.recycled.sort_by(|a, b| b.cmp(a));
+        Ok(file_descriptor)
+    }
+    None => Err(EBADF),
+}
+\end{lstlisting}
+
+我们选择了在回收文件描述符后进行一次排序来解决这个问题。
+
+这个方案不一定是性能最佳的方案，我们还有以下方案可选：
+
+\begin{enumerate}
+    \item 回收时不进行排序，重新分配时使用 $O(n)$ 时间寻找最小的文件描述符；
+    \item 使用二叉平衡树替换线性表，从而在 $O(\log n)$ 时间进行回收与重新分配，但也许会带来内存分配的额外开销。
+\end{enumerate}
+
+未来此处成为性能瓶颈时，根据性能测试结果选用最优方案会是更好的选择。
