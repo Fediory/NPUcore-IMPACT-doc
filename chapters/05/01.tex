@@ -7,7 +7,7 @@
 \begin{table}
     \label{tab:addr}
     \centering
-    \resizebox{\linewidth}{!}{
+    \resizebox{0.7\linewidth}{!}{
 \begin{tabular}{|c|c|c|c|}
 \hline
 地址 & 页号 & 页内偏移 & 总位数 \\
@@ -223,22 +223,22 @@ pub struct TaskControlBlock {
 \section{文件系统方面}
 
 目前来讲，NPUcore-IMPACT已经完美支持了fat32文件系统，但因耦合度较高，目前我们正在进行解耦合操作，且会在后面支持ext4文件系统靠拢。
-对于fat32文件系统，是我们先前NPUcore的增量，不属于我们团队的贡献，因此这里不再赘述，仅在下面给出NPUcore-Impact!!!的具体参数
+对于fat32文件系统，是我们先前NPUcore的增量，不属于我们团队的贡献，因此这里不再赘述，仅在下面给出NPUcore-IMPACT的具体参数。
 
 \subsection{fat32具体参数}
 
-fat32文件系统是个较为简单的系统，当然，其系统的易移植特性与其简单耐用的特性使其成为了几乎所有系统在初始阶段的第一选择。对于NPUcore-Impact!!!,我们可以用一个简单的示意图\autoref{fig:fs}来描述他
+fat32文件系统是个较为简单的系统，当然，其系统的易移植特性与其简单耐用的特性使其成为了几乎所有系统在初始阶段的第一选择。对于NPUcore-IMPACT，我们可以用一个简单的示意图\autoref{fig:fs}来描述他
 
 \begin{figure}[htb]
     \centering
     \includegraphics[width=1\linewidth]{figs/dirt.PNG}
     \label{fig:fs}
-    \caption{NPUcore-Impact!!!的文件系统示意图}
+    \caption{NPUcore-IMPACT的文件系统示意图}
 \end{figure}
 
 \subsubsection{FileDescriptor}
 
-如果用简单的描述来简述NPUcore-Impact!!!的文件系统，那可以将之理解为一栋楼，我们利用一个描述每个房间的FileDescriptor类的指针来读取一个文件的信息，可以毫不为过的将其理解为我们的文件类型指针, \textbf{FileDescriptor的具体定义如下所示:}
+如果用简单的描述来简述NPUcore-IMPACT的文件系统，那可以将之理解为一栋楼，我们利用一个描述每个房间的FileDescriptor类的指针来读取一个文件的信息，可以毫不为过的将其理解为我们的文件类型指针, \textbf{FileDescriptor的具体定义如下所示:}
 
 \begin{lstlisting}[language={rust}, label={code:refill}, caption={FileDescriptor}]
     //fs/mod.rs
@@ -275,11 +275,11 @@ fat32文件系统是个较为简单的系统，当然，其系统的易移植特
 
 在通过文件树寻找制定文件的过程中，首先会判断文件的路径前缀是否在路径缓存
 中，这样使大量文件操作效率更高，同时 NPUcore 也对一些默认的路径进行了路径的
-转化,这部分将于后续5.4中详细说明
+转化,这部分将于后续5.4中详细说明。
 
-\subsection{NPUcore-Impact!!!BitFlags一览}
+\subsection{NPUcore-IMPACT BitFlags一览}
 
-源码如下：
+我们遵循原版POSIX的flag编码，源码如下：
 \begin{lstlisting}[language={rust}, label={code:refill}, caption={FileDescriptor}]
     bitflags! {
         pub struct OpenFlags: u32 {
@@ -373,130 +373,8 @@ fat32文件系统是个较为简单的系统，当然，其系统的易移植特
     }
 \end{lstlisting}
 
-\section{NPUcore-Impact!!!的亮点}
+\subsection{NPUcore-IMPACT的目标与计划}
 
-NPUcore系列的操作系统最大的特点就是——\textbf{快}！而且不是一般的快。
-可以说，NPUcore良好的性能表现离不开我们对于\textbf{Cache}的熟练运用.
-
-\subsection{NPUcore-Impact!!!对于Cache的运用}
-
-NPUcore 使用较为激进的缓存策略，Page Cache 容量不设上限，所有的内存空间都可以作为缓存使用。即使发生内存不足，NPUcore 会根据LRU算法清理无用缓存。经过测试发现，在这种缓存策略下运行大多数测例时，对每个文件NPUcore只从外存读取一次，之后的读写全部发生在 Cache 中，从而带来极大的性能提升。
-
-\subsection{NPUcore-Impact!!!具体性能测试参数}
-
-\begin{table}[H]
-    \centering
-    \resizebox{\linewidth}{!}{
-    \begin{tabular}{|l|c|c|c|c|}
-        \hline
-        \textbf{测例}                                   & \textbf{NPUcore}  & \textbf{基准程序}      & \textbf{Titanix}     & \textbf{PLNTRY}\\
-        \hline
-        b\_malloc\_sparse (0)                           &   -                   & 0.325008007           & 0.307474000       & 0.749882000           \\
-        \hline                      
-        b\_malloc\_bubble (0)                           &   -                   & 0.299156383           & 0.302118000       & 0.795564000           \\
-        \hline                      
-        b\_malloc\_tiny1 (0)                            &   -                   & 0.011439820           & 0.010716000       & 0.020421000           \\
-        \hline    
-        b\_malloc\_tiny2 (0)                            & 0.005085920           & 0.008827947           & 0.008677000       & 0.013895000           \\
-        \hline      
-        b\_malloc\_big1 (0)                             &   -                   & 0.089668000           & 0.089668000       & 0.205780000           \\
-        \hline
-        b\_malloc\_big2 (0)                             & 0.028311200           & 0.092570898           & 0.089264000       & 0.159222000           \\
-        \hline
-        b\_malloc\_thread\_stress (0)                   & 0.066339520           & 0.078210295           & 0.088639000       & 0.065488000           \\
-        \hline
-        b\_malloc\_thread\_local (0)                    &   -                   & 0.076371644           & 0.084808000       & 0.057541000           \\
-        \hline
-        b\_string\_strstr ("abcdefghijklmnopqrstuvwxyz") & 0.011712000          & 0.014879018           & 0.014637000       & 0.014606000           \\
-        \hline
-        b\_string\_strstr ("azbycxdwevfugthsirjqkplomn") & 0.017838240          & 0.022160122           & 0.022694000       & 0.022971000           \\
-        \hline
-        b\_string\_strstr ("aaaaaaaaaaaaaacccccccccccc") & 0.011262640          & 0.013371076           & 0.014105000       & 0.014078000           \\
-        \hline
-        b\_string\_strstr ("aaaaaaaaaaaaaaaaaaaaaaaaac") & 0.010942000          & 0.013494579           & 0.014031000       & 0.013603000           \\
-        \hline
-        b\_string\_strstr ("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaac") & 0.013523120   & 0.016474362           & 0.017411000       & 0.017628000           \\
-        \hline
-        b\_string\_memset (0)                            & 0.009740400          & 0.010840004           & 0.012793000       & 0.012005000           \\
-        \hline
-        b\_string\_strchr (0)                            & 0.011392640          & 0.013300974           & 0.015052000       & 0.014630000           \\
-        \hline
-        b\_string\_strlen (0)                            & 0.009787360          & 0.011389320           & 0.013102000       & 0.012690000           \\
-        \hline
-        b\_pthread\_createjoin\_serial1 (0)              & 0.439336960          & 1.087431144           & 1.643873000       & 1.048143000           \\
-        \hline
-        b\_pthread\_createjoin\_serial2 (0)              & 0.426977760          & 0.861784643           & 1.791139000       & 1.020008000           \\
-        \hline
-        b\_pthread\_create\_serial1 (0)                  & 0.476990480          & 0.785009610           & 2.702702000       & 2.689056000           \\
-        \hline
-        b\_pthread\_uselesslock (0)                      & 0.060514480          & 0.067189695           & 0.079902000       & 0.078151000           \\
-        \hline
-        b\_utf8\_bigbuf (0)                              & 0.032511520          & 0.035250394           & 0.035864000       & 0.037977000           \\
-        \hline
-        b\_utf8\_onebyone (0)                            & 0.091743280          & 0.114485028           & 0.116207000       & 0.117029000           \\
-        \hline
-        b\_stdio\_putcgetc (0)                           & 0.439399360          & 0.764247677           & 0.621226000       & 0.361184000           \\
-        \hline
-        b\_stdio\_putcgetc\_unlocked (0)                 & 0.426097680          & 0.752266360           & 0.615693000       & 0.339361000           \\
-        \hline
-        b\_regex\_compile ("(a|b|c)*d*b")                & 0.057043200          & 0.071444121           & 0.073049000       & 0.075878000           \\
-        \hline
-        b\_regex\_search ("(a|b|c)*d*b")                 &   -                  & 0.081086193           & 0.083481000       & 0.086110000           \\
-        \hline
-        b\_regex\_search ("a\{25\}b")                    &   -                  & 0.254820207           & 0.253847000       & 0.256301000           \\
-        \hline
-    \end{tabular}
-    }
-    \caption{libc-bench耗时，“-”代表NPUcore无法正常执行。}
-\end{table}
-
-\begin{table}[H]
-    \centering
-    \resizebox{\linewidth}{!}{
-    \begin{tabular}{|l|c|c|c|c|}
-        \hline
-        \textbf{测例}                       & \textbf{NPUcore}      &\textbf{基准程序}  & \textbf{Titanix}   & \textbf{PLNTRY}\\
-        \hline
-        Unixbench DHRY2 test(lps)           & 61405230              &49005063       & 49932495              & 48523418  \\
-        \hline
-        Unixbench WHETSTONE test(MFLOPS)    & 1269.670              &1026.820       & 997.612               & 1014.102  \\
-        \hline
-        Unixbench SYSCALL test(lps)         & 222615                &2416696        & 1216209               & 547678    \\
-        \hline
-        Unixbench CONTEXT test(lps)         & 168113                &80174          & 54440                 & 42416     \\
-        \hline
-        Unixbench PIPE test(lps)            & 413979                &330556         & 162389                & 802449    \\
-        \hline
-        Unixbench SPAWN test(lps)           & 64394                 &16686          & 14937                 & 13586     \\
-        \hline
-        Unixbench EXECL test(lps)           & 73597                 &6645           & 1262                  & -         \\
-        \hline
-        Unixbench ARITHOH test(lps)         & 7032261867            &5718673825     & 5607494736            & 5541357804\\
-        \hline
-        Unixbench SHORT test(lps)           & 179342297             &147678033      & 141948434             & 140413305 \\
-        \hline
-        Unixbench INT test(lps)             & 179660281             &148128134      & 140942140             & 140311940 \\
-        \hline
-        Unixbench LONG test(lps)            & 179644882             &153417287      & 141540178             & 140287530 \\
-        \hline
-        Unixbench FLOAT test(lps)           & 178725171             &148049012      & 141550560             & 142030413 \\
-        \hline
-        Unixbench DOUBLE test(lps)          & 179034748             &148031827      & 142851862             & 141484435 \\
-        \hline
-        Unixbench HANOI test(lps)           & 677685                &544504         & 545068                & 536762    \\
-        \hline
-        Unixbench EXEC test(lps)            & 39493                 &945            & 8561                  & -         \\
-        \hline
-    \end{tabular}
-    }
-    \caption{Unixbench测试分数，“-”代表PLNTRY无法正常执行。}
-    \label{Unixbench测试结果}
-\end{table}
-
-\subsection{NPUcore-Impact!!!的目标与计划}
-
-目前我们对于NPUcore-Impact!!!整体的性能指标感到较为满意，但并不满足于功能较为单一的现状，目前我们正在为NPUcore-Impact!!!添加更多的功能。
-
-于现在的存储设备技术发展迅速，存储单元的价格已经出现了大幅度下降。同时，随着芯片技术发展，计算机性能变得更加强劲，文件大小也跟着变大，fat32仅能满足\textbf{最大4GB}的单文件存储能力已经远远无法支持新一代设备了，所以我们计划为其添加ext4文件系统支持。
-
-同时由于网络层对于文件系统的依赖耦合程度较高\textit{(Unix_Like系统大多依赖VFS来对设备进行控制，即把设备当做一个可以进行读写的类管道文件)}，我们暂时放弃了已经写好的fat32下的网络支持，计划于ext4完成适配再进行添加
+目前我们对于NPUcore-IMPACT整体的性能指标感到较为满意，但并不满足于功能较为单一的现状，目前我们正在为NPUcore-IMPACT添加更多的功能。
+由于现在的存储设备技术发展迅速，存储单元的价格已经出现了大幅度下降。同时，随着芯片技术发展，计算机性能变得更加强劲，文件大小也跟着变大，fat32仅能满足\textbf{最大4GB}的单文件存储能力已经远远无法支持新一代设备了，所以我们计划为其添加ext4文件系统支持。
+同时由于网络层对于文件系统的依赖耦合程度较高\textit{(Unix_Like系统大多依赖VFS来对设备进行控制，即把设备当做一个可以进行读写的类管道文件)}，我们暂时放弃了已经写好的fat32下的网络支持，计划于ext4完成适配再进行添加。最终我们拟定在决赛时提交完整版文件系统。
