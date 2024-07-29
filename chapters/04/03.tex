@@ -1,6 +1,130 @@
 
 \subsection{EXT4 文件系统的实现过程}
 
+在我们提交的最终版中，我们使用了 lwext4 作为 EXT4 文件系统驱动，同时我们也会在后面介绍NPUcore对于其它EXT4-like文件系统适配的可能性。
+
+lwext4 是一个针对嵌入式系统设计的轻量级 EXT4 文件系统实现，它旨在提供 EXT4 文件系统的关键特性，同时保持低资源消耗和高性能，以适应嵌入式系统的限制。
+为了让 lwext4 能与 NPUcore-IMPACT 一起工作，我们对 NPUcore-IMPACT 的文件系统设计做出了一定调整。
+
+我们借助 Rust 的 trait 语言特性，设计了一个 File trait，用于表示一个抽象的文件，或者说一个可以对其进行读写的对象。
+
+\begin{lstlisting}[language={Rust}, caption={File trait}]
+pub trait File: DowncastSync {
+    fn deep_clone(&self) -> Arc<dyn File>;
+    fn readable(&self) -> bool;
+    fn writable(&self) -> bool;
+    fn read(&self, offset: Option<&mut usize>, buf: &mut [u8]) -> usize;
+    fn write(&self, offset: Option<&mut usize>, buf: &[u8]) -> usize;
+    fn r_ready(&self) -> bool;
+    fn w_ready(&self) -> bool;
+    fn read_user(&self, offset: Option<usize>, buf: UserBuffer) -> usize;
+    fn write_user(&self, offset: Option<usize>, buf: UserBuffer) -> usize;
+    fn get_size(&self) -> usize;
+    fn get_stat(&self) -> Stat;
+    fn get_statx(&self) -> Statx;
+    fn get_file_type(&self) -> DiskInodeType;
+    fn is_dir(&self) -> bool {
+        self.get_file_type().is_dir()
+        // self.get_file_type() == DiskInodeType::Directory
+    }
+    fn is_file(&self) -> bool {
+        self.get_file_type().is_file()
+        // self.get_file_type() == DiskInodeType::File
+    }
+    fn info_dirtree_node(&self, dirnode_ptr: Weak<DirectoryTreeNode>);
+    fn get_dirtree_node(&self) -> Option<Arc<DirectoryTreeNode>>;
+    /// open
+    fn open(&self, flags: OpenFlags, special_use: bool) -> Arc<dyn File>;
+    fn open_subfile(&self) -> Result<Vec<(String, Arc<dyn File>)>, isize>;
+    /// create
+    fn create(&self, name: &str, file_type: DiskInodeType) -> Result<Arc<dyn File>, isize>;
+    fn link_child(&self, name: &str, child: &Self) -> Result<(), isize>
+    where
+        Self: Sized;
+    /// delete(unlink)
+    fn unlink(&self, delete: bool) -> Result<(), isize>;
+    /// dirent
+    fn get_dirent(&self, count: usize) -> Vec<Dirent>;
+    /// offset
+    fn get_offset(&self) -> usize {
+        self.lseek(0, SeekWhence::SEEK_CUR).unwrap()
+    }
+    fn lseek(&self, offset: isize, whence: SeekWhence) -> Result<usize, isize>;
+    /// size
+    fn modify_size(&self, diff: isize) -> Result<(), isize>;
+    fn truncate_size(&self, new_size: usize) -> Result<(), isize>;
+    // time
+    fn set_timestamp(&self, ctime: Option<usize>, atime: Option<usize>, mtime: Option<usize>);
+    /// cache
+    fn get_single_cache(&self, offset: usize) -> Result<Arc<Mutex<PageCache>>, ()>;
+    fn get_all_caches(&self) -> Result<Vec<Arc<Mutex<PageCache>>>, ()>;
+    /// memory related
+    fn oom(&self) -> usize;
+    /// poll, select related
+    fn hang_up(&self) -> bool;
+    /// iotcl
+    fn ioctl(&self, _cmd: u32, _argp: usize) -> isize {
+        ENOTTY
+    }
+    /// fcntl
+    fn fcntl(&self, cmd: u32, arg: u32) -> isize;
+}
+\end{lstlisting}
+
+在此基础上，我们为 lwext4 提供的 ext4_file 类型实现我们的 File trait，让 NPUcore-IMPACT 可以对其进行读写，从而实现 EXT4 文件系统的支持。
+
+由于 lwext4 依赖 libc 进行内存分配，为了让它能工作在没有 libc 的环境下，我们还需要对其做出一定修改。
+
+\begin{lstlisting}[language={C}, caption={管理 lwext4 内存}]
+#if CONFIG_USE_USER_MALLOC
+
+#define ext4_malloc  ext4_user_malloc
+#define ext4_calloc  ext4_user_calloc
+#define ext4_realloc ext4_user_realloc
+#define ext4_free    ext4_user_free
+
+#else
+
+#define ext4_malloc  malloc
+#define ext4_calloc  calloc
+#define ext4_realloc realloc
+#define ext4_free    free
+
+#endif
+\end{lstlisting}
+
+我们希望让 NPUcore-IMPACT 为 lwext4 管理内存，为此我们实现 ext4_user_malloc、ext4_user_calloc、ext4_user_realloc、ext4_user_free 这四个内存管理函数，并将其与 lwext4 链接，从而让 lwext4 可以使用我们为它分配的内存，并在合适的时候回收这些内存。
+
+\begin{lstlisting}[language={Rust}, caption={NPUcore-IMPACT 为 lwext4 分配内存}]
+#[no_mangle]
+pub extern "C" fn ext4_user_malloc(size: ::core::ffi::c_size_t) -> *mut ::core::ffi::c_void {
+    HEAP_ALLOCATOR
+        .lock()
+        .alloc(Layout::array::<u8>(size).unwrap())
+        .unwrap()
+        .as_ptr() as *mut ::core::ffi::c_void
+}
+\end{lstlisting}
+
+为了便于调试，我们需要在 lwext4 执行时打印日志，得益于 Rust 与 C 跨语言互操作十分方便，我们直接在 Rust 侧编写了打印日志的工具函数。
+
+\begin{lstlisting}[language={Rust}, caption={在 lwext4 的 C 语言代码中打印日志}]
+#[no_mangle]
+pub extern "C" fn os_log(str: *const ::core::ffi::c_char) {
+    let str = unsafe { CStr::from_ptr(str) };
+    log::info!("{str:?}");
+}
+
+#[no_mangle]
+pub extern "C" fn os_var_log(name: *const ::core::ffi::c_char, value: ::core::ffi::c_int) {
+    let name = unsafe { CStr::from_ptr(name) };
+    log::info!("{name:?}: {value}");
+}
+\end{lstlisting}
+
+使用 \#[no_mangle] 可以让编译器不对函数名字进行混淆，使得我们可以在 C 语言侧直接调用 os_log 与 os_var_log 日志函数。
+
+
 \subsubsection{LA 体系下 FAT32 与 EXT4 的区别}
 
 \begin{enumerate}
@@ -14,7 +138,7 @@
 
 我们参考了历年不同赛道的优秀作品，最后给出了如下的适配方式：
 
-\textit{我们采用第三方包将稳定 C 库作为外部库调入 NPUcore 中，如下图所示：}
+\textit{我们采用第三方包将稳定 C 库作为外部库调入 NPUcore 中，如\autoref{ext4-complexe}所示：}
 
 \begin{table}[htbp]
     \centering
@@ -29,9 +153,8 @@
     \caption{选用技术栈}
 \end{table}
 
-\newpage
 
-\begin{figure}[htbp]
+\begin{figure}
     \centering
     \includegraphics[width=0.6\linewidth]{figs/plan-ext.png}
     \caption{ext4 实现结构图}
@@ -95,6 +218,150 @@
 
 经过一段时间的分析，我们认为 lwext4 系列的库\textbf{由于一定原因与 LA 指令集并不适配}
 
-\subsubsection{第三次适配（）}
+\subsubsection{第三次适配（EXT4-View）}
 
-\subsubsection{第四次适配（）}
+由于前两次适配都设计到lwext4相关，并且其存在于mkfs不相干的特性（但这并不是使用lwext4-mkfs没有成功的根本原因）。于是我们在github上自行检索并找到了这个EXT4-View\footnote{https://github.com/nicholasbishop/ext4-view-rs}仓库。我们试图将这个版本的EXT4与我们的NPUcore进行适配。
+
+EXT4-View由一个谷歌研究员开发并持续维护中。该库提供了一个 Rust crate，允许对 ext4 文件系统进行\textbf{只读访问}。该 crate是no_std，因此可在嵌入式上下文中使用。不过，它需要 alloc。
+这个仓库的基本属性可以总结为如下的部分：
+\begin{enumerate}
+    \item 所有有效的 ext4 文件系统都应该是可读的。
+    \item 无效数据绝不会导致崩溃、panic或无限循环。
+    \item 主软件包中没有不安全代码（允许在依赖包中出现）。
+\end{enumerate}
+使用方法为：
+\begin{lstlisting}[language={Rust}, caption={ext4-view在kernel中的基本使用方法示例}]
+use ext4_view::{Ext4, Metadata};
+
+let fs_data: Vec<u8> = get_fs_data_from_somewhere();
+let fs = Ext4::load(Box::new(data_source))?;
+
+// If the std feature is enabled, you can load a filesystem by path:
+let fs = Ext4::load_from_path(std::path::Path::new("some-fs.bin"))?;
+
+// The Ext4 type has methods very similar to std::fs:
+let path = "/some/file/path";
+let file_data: Vec<u8> = fs.read(path)?;
+let file_str: String = fs.read_to_string(path)?;
+let exists: bool = fs.exists(path)?;
+let metadata: Metadata = fs.metadata(path)?;
+for entry in fs.read_dir("/some/dir")? {
+    let entry = entry?;
+    println!("{}", entry.path().display());
+}
+    \end{lstlisting}
+
+而载入这个文件系统的方法只有两步，首先需要将img转换为.bin文件，并将.bin引入到kernel中，用一个指针指向它作为基本目录。实现代码如下：
+\begin{lstlisting}[language={Rust}, caption={将测例加载进入kernel}]
+    fn load_test_disk1() -> Ext4 {
+        const DATA: &[u8] = include_bytes!("../../test_data/test_disk1.bin");
+        Ext4::load(Box::new(DATA.to_vec())).unwrap()
+    }
+
+\end{lstlisting}
+
+在适配中我们发现了两个明显的缺点：第一，由于加载kernel的地址为0x9000000090000000，计算后发现，只有64M的空间。所以我们的uImage大小不能超过64M，而本次全部测例有120M左右，因此没有办法将全部测例封装并测试。
+第二，也是最致命的缺点。经过三天的适配后，我们发现内核中存在了很多奇怪的bug，包括但不限于找不到根目录，块设备加载出错等。刚开始我们认为是我们的kernel适配没有完全成功，而经过检查后发现是仓库本身存在问题，目前的版本不是完全完善的ext4版本。
+而该仓库也仅有一个只读文件系统，没有办法完成针对本次比赛“完整的”EXT4适配，因此我们最终也放弃了这个仓库。
+
+这个仓库值得后续的高度关注，因为它代码风格统一，接口完善，适配简单，应该能成为后续适配者的一个优质选择。
+
+\subsubsection{第四次适配（Alien-rust）}
+
+最后抱着试一试的态度，我们找到了往年的特等奖得主Alien\footnote{https://gitlab.eduxiji.net/202310007101563/Alien}仓库（该仓库仍然在持续开源并推进中。它一个用 rust 实现的简单操作系统。目的是探索如何使用模块来构建一个完整的操作系统，因此系统由一系列独立的模块组成。
+
+他们的仓库中有提到对于lwext4的修复与推进工作：有了c实现的支持，我们只需要在rust中生成相关的头文件以及静态库。在做这部分之前，我们首先查看了一下crates.io中是否已有相关的实现，幸运的是，2年前已经有一个实现lwext4, 在简单阅读了其实现之后，我们打算参考其实现重新编写，因为其已经缺乏维护，并且不包含对no_std环境的支持。这个已有的实现给予我们很好的想法。
+最终我们根据Alien的提示，适配了一个仍然针对LA2K1000开发板存在bug的NPUcore版本。该版本仅支持执行部分测例，并没有实现完整的“文件系统”应有的部分。但是我们仍将我们针对这个仓库的适配过程做一个小总结。
+
+首先我们需要将文件系统从原先的FAT32转换为lwext4中的对应的Inode和FileSystem。这里的EasyFileSystem是一层针对文件系统的抽象接口。
+\begin{lstlisting}[language={Rust}, caption={FILE_SYSTEM修改}]
+pub type EasyFileSystem = lwext4_rs::FileSystem<crate::arch::BlockDeviceImpl>;
+type DiskInodeType = lwext4_rs::FileType;
+    lazy_static! {
+        pub static ref FILE_SYSTEM: EasyFileSystem = EasyFileSystem::new(
+            MountHandle::mount(
+                RegisterHandle::register(BlockDevice::new(BlockDeviceImpl::new()), "shit".to_string())
+                    .unwrap(),
+                "/".to_string(),
+                false,
+                false,
+            )
+            .unwrap()
+        )
+        .unwrap();
+    }
+\end{lstlisting}
+
+我们针对这层抽象继续修改对应的根目录：
+\begin{lstlisting}[language={Rust}, caption={ROOT修改}]
+    lazy_static! {
+        pub static ref ROOT: Arc<DirectoryTreeNode> = {
+            FILE_SYSTEM.readdir("/").unwrap();
+    
+            let inode = DirectoryTreeNode::new(
+                "".to_string(),
+                Arc::new(FileSystem::new(FS::Fat32)),
+                Arc::new(OpenOptions::new().read(true).write(true).open("/").unwrap()),
+                // OSInode::new(Arc::new()),
+                Weak::new(),
+            );
+            inode.add_special_use();
+            inode
+        };
+        static ref DIRECTORY_VEC: Mutex<(Vec<Weak<DirectoryTreeNode>>, usize)> =
+            Mutex::new((Vec::new(), 0));
+        static ref PATH_CACHE: Mutex<(String, Weak<DirectoryTreeNode>)> =
+            Mutex::new(("".to_string(), Weak::new()));
+    }
+    \end{lstlisting}
+
+针对这层块设备，我们也适配了对应的PCI和SATA块的读写部分，可以识别到测例。这里的lock和unlock方法为开发中，因为诸多测例都不需要这个方法，close则为默认关闭成功。
+\begin{lstlisting}[language={Rust}, caption={ROOT修改}]
+    impl lwext4_rs::BlockDeviceInterface for SataBlock{
+        fn read_block(&mut self, buf: &mut [u8], mut block_id: u64, block_count: u32) -> lwext4_rs::Result<usize> {
+            // kernel BLOCK_SZ=2048, SATA BLOCK_SIZE=512，four times
+            block_id = block_id * (BLOCK_SZ as u64 / BLOCK_SIZE as u64);
+            for buf in buf.chunks_mut(BLOCK_SIZE) {
+                self.0
+                    .lock()
+                    .read_block(block_id, buf);
+                block_id += 1;
+            }
+            Ok(0)
+        }
+    
+        fn write_block(&mut self, buf: &[u8], mut block_id: u64, block_count: u32) -> lwext4_rs::Result<usize> {
+            block_id = block_id * (BLOCK_SZ as u64 / BLOCK_SIZE as u64);
+            for buf in buf.chunks(BLOCK_SIZE) {
+                self.0
+                    .lock()
+                    .write_block(block_id, buf);
+                block_id += 1;
+            }
+            Ok(0)
+        }
+        
+        fn close(&mut self) -> lwext4_rs::Result<()> {
+            Ok(())
+        }
+    
+        fn open(&mut self) -> lwext4_rs::Result<lwext4_rs::BlockDeviceConfig> {
+            Ok(lwext4_rs::BlockDeviceConfig{
+                block_size: BLOCK_SIZE as u32,
+                block_count: 999,
+                part_size: BLOCK_SIZE as u64 * 2,
+                part_offset: 0
+            })
+        }
+    
+        fn lock(&mut self) -> lwext4_rs::Result<()> {
+            Ok(())
+        }
+    
+        fn unlock(&mut self) -> lwext4_rs::Result<()> {
+            Ok(())
+        }
+    }
+    \end{lstlisting}
+    
+我们最终在决赛提交的也是这个版本，虽然它仍然有各种问题，但是我们将测例直接放入kernel中是可以跑出对应分数的。这个文件系统适配仍然非常不完善，甚至在文件系统初始化时都会报panic（我们跳过文件系统这一层，直接执行测例跑出的分数），因此我们后续仍然会持续推进并开发。
