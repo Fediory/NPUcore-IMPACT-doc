@@ -44,9 +44,56 @@
     \item \textit{转换我们的fs适配新的rs库} \\ 这部分很简单，我们相当于已经拿来一个ext文件系统了，剩下的就是直接使用调用就行了。在makefile里和rust代码里加入feature就可以做到针对不同文件系统的编译与运行
 \end{enumerate}
 
-\subsubsection{第一次适配（ LWEXT4-C + Bindgen ）}
+\vspace{1em}
 
-\subsubsection{第二次适配（ LWEXT4-RUST ）}
+对于其中可能出现的问题，可见如下列表：
+
+\begin{enumerate}
+    \item \textbf{移植的时候会不会出现不适配龙芯情况:}99\%不会，目前查出来 Bindgen 使用 Clang 对 C 文件进行编译，之后反编译（\textit{仅使用 Clang ，不使用 LLVM 编译为机器码}）回 Rust ，所以生成的代码最后编译时间还是走的 make 中的 loongarch-gcc .具体编译环节的参考如下：https://blog.csdn.net/xhhjin/article/details/81164076
+    \item \textbf{lwext4 的水平如何，是否会存在包本身的问题：} C 语言库，方便阅读；稳定性比较强，多平台测试过，支持小端序，测试过的架构有 x86/AMD64 ， ARM 系列以及其的各种嵌入式架构
+\end{enumerate}
+
+\subsubsection{第一次适配（LWEXT4-C + Bindgen）}
+
+在第一次适配中，我们试图通过上述方式完成 EXT4 文件系统对于 LA 的适配，然而，我们遇到了许多问题
+\begin{enumerate} 
+    \item \textit{no_std 环境问题：}我们发现，离开了标准 C 环境的 lwext4 的适配情况并没有我们想象的顺利。在一步步 debug 的过程中，我们经历了如下问题：
+    \begin{figure}[htbp] 
+        \centering 
+        \includegraphics[width=0.5\linewidth]{figs/ext4c.png} 
+        \caption{Debug 流程图} 
+        \label{debug-ext4c} 
+    \end{figure} 
+    %\item \textit{工作量问题：}我们试图向内核中添加 C_std 环境，但是由于较大的工作量失败了
+\end{enumerate}
+
+\subsubsection{第二次适配（LWEXT4-RUST）}
+
+经过一定时间的查找资料，我们发现了下一个 lwext4 库，其 Supported Features 具体如下：\footnote{github网址：https://github.com/elliott10/lwext4_rust}，然而这个包的适配过程仍然十分艰难：
+
+\begin{itemize}
+    \item lwext4_rust for x86_64, riscv64 and aarch64 on Rust OS is supported
+    \item File system mount and unmount operations
+    \item Filetypes: regular, directories, softlinks
+    \item Journal recovery \& transactions
+    \item memory as Block Cache
+\end{itemize}
+
+由于在其 Dependences 中发现了如下信息：
+
+\begin{center}
+    \textbf{C musl-based cross compile toolchains}
+    \begin{itemize}
+        \centering
+        \item x86_64-linux-musl-gcc
+        \item riscv64-linux-musl-gcc
+        \item aarch64-linux-musl-gcc
+    \end{itemize}
+\end{center}
+
+\textit{我们认为，其在我们拥有 LA 相关工具链的情况下是可以适配至我们的 LA 指令集操作系统上的}
+
+经过一段时间的分析，我们认为 lwext4 系列的库\textbf{由于一定原因与 LA 指令集并不适配}
 
 \subsubsection{第三次适配（）}
 
