@@ -3,10 +3,28 @@
 
 \subsubsection{LA 体系下 FAT32 与 EXT4 的区别}
 
+首先，我们先介绍一下 EXT4 文件系统：
+
+\begin{center}
+    \textit{首先，我们先来介绍一下 EXT4 文件系统的参数：}
+    \begin{table}[htbp]
+        \begin{tabular}{|c|c|c|c|c|}
+            \hline
+            文件系统大小 & 单个文件大小 & 子目录可伸展性 & 索引节点 & 碎片整理方式 \\
+            \hline
+            1 EB & 16 TB \& 48b Bloc_Addr & $\infty$ & 纳秒节点 & 多块分配 + Extends 减少碎片产生 \\
+            \hline
+        \end{tabular}
+    \end{table}
+\end{center}
+
 \begin{enumerate}
-    \item \textit{与指令集相关}
-    % INPROCESS
-    \item \textit{与 NPUcore 相关}
+    \item \textit{与指令集相关:}
+    通过分析，我们发现可能有以下几种与指令集相关可能产生影响的因素
+    \begin{itemize}
+        \item \textbf{LoongArch 架构对于优先级的定义不同：} LoongArch 对于优先级的定义由 PVL0 ~ PVL3 ，其中运行于he'xin'tai
+    \end{enumerate}
+    \item \textit{与 NPUcore 相关:}
     % INPROCESS
 \end{enumerate}
 
