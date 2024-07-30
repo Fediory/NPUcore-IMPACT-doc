@@ -125,7 +125,7 @@ pub extern "C" fn os_var_log(name: *const ::core::ffi::c_char, value: ::core::ff
 使用 \#[no_mangle] 可以让编译器不对函数名字进行混淆，使得我们可以在 C 语言侧直接调用 os_log 与 os_var_log 日志函数。
 
 
-\subsubsection{LA 体系下 FAT32 与 EXT4 的区别}
+\subsubsection{LA 体系下适配 EXT4 的难点}
 
 首先，我们先介绍一下 EXT4 文件系统：
 
@@ -140,17 +140,20 @@ pub extern "C" fn os_var_log(name: *const ::core::ffi::c_char, value: ::core::ff
             \hline
         \end{tabular}
     \end{table}
+    \textbf{对于一个运行于操作系统之内的文件系统而言，我们认为其很难由于指令集不兼容而产生错误，最大的可能性存在于数据不合规之中}
 \end{center}
 
-\begin{enumerate}
-    \item \textit{与指令集相关:}
-    通过分析，我们发现可能有以下几种与指令集相关可能产生影响的因素
-    \begin{itemize}
-        \item \textbf{LoongArch 架构对于优先级的定义不同：} LoongArch 对于优先级的定义由 PVL0 ~ PVL3 ，其中运行于he'xin'tai
-    \end{enumerate}
-    \item \textit{与 NPUcore 相关:}
-    % INPROCESS
-\end{enumerate}
+\textit{与指令集相关:}
+通过分析，我们发现可能有以下几种与指令集相关可能产生影响的因素
+\begin{itemize}
+    \item \textbf{LoongArch 架构对于特权级的定义不同：} LoongArch 对于特权级的定义由 PVL0 ~ PVL3 ，其中运行于核心态 PVL0 的文件系统并不会受其影响
+    \item \textbf{LoongArch 架构对于 Cache 定义位宽的不兼容：}EXT4 文件系统使用内存缓存作为优化文件管理速度的重要手段，如果 EXT4 在 Cache 中存储了一个 48 bit 的块内地址，但 Cache 位宽仅有32 bit 则会引发错误。经过查证，虽然 Cache 使用32 bit 作为位宽，但其并不是造成问题的关键，因为我们并没有在报错信息中找到位溢出错误
+    \begin{figure}[htbp]
+        \centering
+        \includegraphics[width=0.6\linewidth]{figs/csrrd.PNG}
+        \caption{LoongArch 对于 Cache 的定义}
+    \end{figure}
+\end{itemize}
 
 \subsubsection{敲定实现方式}
 
@@ -172,7 +175,7 @@ pub extern "C" fn os_var_log(name: *const ::core::ffi::c_char, value: ::core::ff
 \end{table}
 
 
-\begin{figure}
+\begin{figure}[htbp]
     \centering
     \includegraphics[width=0.6\linewidth]{figs/plan-ext.png}
     \caption{ext4 实现结构图}
@@ -205,7 +208,6 @@ pub extern "C" fn os_var_log(name: *const ::core::ffi::c_char, value: ::core::ff
         \caption{Debug 流程图} 
         \label{debug-ext4c} 
     \end{figure} 
-    %\item \textit{工作量问题：}我们试图向内核中添加 C_std 环境，但是由于较大的工作量失败了
 \end{enumerate}
 
 \subsubsection{第二次适配（LWEXT4-RUST）}

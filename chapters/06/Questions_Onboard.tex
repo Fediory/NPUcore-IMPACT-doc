@@ -1,8 +1,6 @@
 \chapter{目前仍存在的bug与解决思路}
 
-\section{硬件方面}
-
-由于今年的开发板从 2k500 换成了 2k1000 且其\textbf{标称型号与实际型号相同性存疑}，我们在上板期间遇到了许多问题，这里不再详细列举，下面给出网上找到的 2k1000 开发板与实物存在的区别
+在硬件方面，由于今年的开发板从 2k500 换成了 2k1000 且其\textbf{标称型号与实际型号相同性存疑}，我们在上板期间遇到了许多问题，这里不再详细列举，下面给出网上找到的 2k1000 开发板与实物存在的区别
 
 \begin{figure}[htbp]
 	\centering
@@ -51,13 +49,13 @@
 	\item \textit{MMC 子系统缺失问题：}不仅如此，我们在后续进行烧录操作时，发现本开发板搭载的 u-boot 系统甚至没有搭载 MMC 子系统，这表示这我们无法对上面的 SSD 进行操作， \textbf{这直接导致了下面存在的问题}.
 \end{enumerate}
 
-\subsection{上板期间遇到的问题I —— 无法烧录}
+\begin{center}
+	\textbf{上板期间遇到的问题 —— 无法烧录}
+\end{center}
 
 由于复赛期间我们强制要求使用 mkfs_ext4 进行镜像文件系统的制作，并强制将测例封装进文件系统，我们在上板测试时发现了如下问题
 
-\subsubsection{现象}
-
-我们在正常烧录内核时，会在初始化  报Panicked，具体现象与代码如下：
+\textbf{其表现为：}我们在正常烧录内核时，会在初始化  报Panicked，具体现象与代码如下：
 
 \begin{figure}[htbp]
 	\centering
@@ -74,8 +72,6 @@
 	\caption{QEMU 中挂载源码}
 	\label{information of bug}
 \end{figure}
-
-\subsubsection{解决方法}
 
 于是我们试图通过某种方式绕过这些问题
 
