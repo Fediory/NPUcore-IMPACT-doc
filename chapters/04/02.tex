@@ -4,126 +4,16 @@ EXT4（fourth extended filesystem）是 Linux 内核的一个日志文件系统�
 
 与 NPUcore 先前使用的 FAT32 文件系统相比，EXT4 文件系统不仅允许了更大的文件大小与卷大小，更有着显著的性能和效率提升。EXT4 文件系统使用了延迟分配和多块分配策略，显著减少了碎片并提高了写入性能；同时它支持 Extents 和更高效的分配策略，提高了文件操作的速度和效率。此外，EXT4 文件系统还支持日志记录，通过记录元数据变化确保系统崩溃时的数据一致性和完整性，检查速度快且更可靠。
 
+ext4文件系统原理如下：
+\begin{enumerate}
+    \item 日志功能：ext4采用了日志功能（journaling），即在对文件系统进行操作时，会先将操作记录在日志中，然后再执行操作。这样可以在系统异常关机或崩溃时恢复文件系统的一致性。
+    \item 内存缓存：ext4使用了内存缓存，将磁盘上的数据加载到内存中进行读写操作，以提高文件的访问速度。
+    \item 数据块分配：ext4使用了多级索引结构来分配存储空间。它将文件系统的空间分为固定大小的块，每个块可以存储一定大小的数据。通过索引结构，可以快速定位文件的数据块。
+    \item 空闲块管理：ext4使用了位图和B树来管理空闲块。位图记录着每个块的使用情况，而B树则用于索引和定位空闲块。
+    \item 快照功能：ext4支持快照功能，可以在不影响原有数据的情况下对文件系统进行备份和恢复。
+    \item 后日志预分配：ext4采用了一种称为"delayed allocation"的技术，即将数据块的分配推迟到真正需要写入数据时再进行。这样可以提高写入性能，减少磁盘的碎片化。
+    \item 逐项更新：ext4在写入数据时，不会一次性更新整个文件，而是根据需要只更新部分数据。这种逐项更新的方式可以减少磁盘的I/O次数，提高性能。
+\end{enumerate}
+
 我们为 NPUcore-IMPACT 实验性地加入了 EXT4 文件系统支持，使得其可以从 EXT4 文件系统启动，并读写其中的文件。
 
-我们使用了 lwext4 作为 EXT4 文件系统驱动。lwext4 是一个针对嵌入式系统设计的轻量级 EXT4 文件系统实现，它旨在提供 EXT4 文件系统的关键特性，同时保持低资源消耗和高性能，以适应嵌入式系统的限制。
-
-为了让 lwext4 能与 NPUcore-IMPACT 一起工作，我们对 NPUcore-IMPACT 的文件系统设计做出了一定调整。
-
-我们借助 Rust 的 trait 语言特性，设计了一个 File trait，用于表示一个抽象的文件，或者说一个可以对其进行读写的对象。
-
-\begin{lstlisting}[language={Rust}, caption={File trait}]
-pub trait File: DowncastSync {
-    fn deep_clone(&self) -> Arc<dyn File>;
-    fn readable(&self) -> bool;
-    fn writable(&self) -> bool;
-    fn read(&self, offset: Option<&mut usize>, buf: &mut [u8]) -> usize;
-    fn write(&self, offset: Option<&mut usize>, buf: &[u8]) -> usize;
-    fn r_ready(&self) -> bool;
-    fn w_ready(&self) -> bool;
-    fn read_user(&self, offset: Option<usize>, buf: UserBuffer) -> usize;
-    fn write_user(&self, offset: Option<usize>, buf: UserBuffer) -> usize;
-    fn get_size(&self) -> usize;
-    fn get_stat(&self) -> Stat;
-    fn get_statx(&self) -> Statx;
-    fn get_file_type(&self) -> DiskInodeType;
-    fn is_dir(&self) -> bool {
-        self.get_file_type().is_dir()
-        // self.get_file_type() == DiskInodeType::Directory
-    }
-    fn is_file(&self) -> bool {
-        self.get_file_type().is_file()
-        // self.get_file_type() == DiskInodeType::File
-    }
-    fn info_dirtree_node(&self, dirnode_ptr: Weak<DirectoryTreeNode>);
-    fn get_dirtree_node(&self) -> Option<Arc<DirectoryTreeNode>>;
-    /// open
-    fn open(&self, flags: OpenFlags, special_use: bool) -> Arc<dyn File>;
-    fn open_subfile(&self) -> Result<Vec<(String, Arc<dyn File>)>, isize>;
-    /// create
-    fn create(&self, name: &str, file_type: DiskInodeType) -> Result<Arc<dyn File>, isize>;
-    fn link_child(&self, name: &str, child: &Self) -> Result<(), isize>
-    where
-        Self: Sized;
-    /// delete(unlink)
-    fn unlink(&self, delete: bool) -> Result<(), isize>;
-    /// dirent
-    fn get_dirent(&self, count: usize) -> Vec<Dirent>;
-    /// offset
-    fn get_offset(&self) -> usize {
-        self.lseek(0, SeekWhence::SEEK_CUR).unwrap()
-    }
-    fn lseek(&self, offset: isize, whence: SeekWhence) -> Result<usize, isize>;
-    /// size
-    fn modify_size(&self, diff: isize) -> Result<(), isize>;
-    fn truncate_size(&self, new_size: usize) -> Result<(), isize>;
-    // time
-    fn set_timestamp(&self, ctime: Option<usize>, atime: Option<usize>, mtime: Option<usize>);
-    /// cache
-    fn get_single_cache(&self, offset: usize) -> Result<Arc<Mutex<PageCache>>, ()>;
-    fn get_all_caches(&self) -> Result<Vec<Arc<Mutex<PageCache>>>, ()>;
-    /// memory related
-    fn oom(&self) -> usize;
-    /// poll, select related
-    fn hang_up(&self) -> bool;
-    /// iotcl
-    fn ioctl(&self, _cmd: u32, _argp: usize) -> isize {
-        ENOTTY
-    }
-    /// fcntl
-    fn fcntl(&self, cmd: u32, arg: u32) -> isize;
-}
-\end{lstlisting}
-
-在此基础上，我们为 lwext4 提供的 ext4_file 类型实现我们的 File trait，让 NPUcore-IMPACT 可以对其进行读写，从而实现 EXT4 文件系统的支持。
-
-由于 lwext4 依赖 libc 进行内存分配，为了让它能工作在没有 libc 的环境下，我们还需要对其做出一定修改。
-
-\begin{lstlisting}[language={C}, caption={管理 lwext4 内存}]
-#if CONFIG_USE_USER_MALLOC
-
-#define ext4_malloc  ext4_user_malloc
-#define ext4_calloc  ext4_user_calloc
-#define ext4_realloc ext4_user_realloc
-#define ext4_free    ext4_user_free
-
-#else
-
-#define ext4_malloc  malloc
-#define ext4_calloc  calloc
-#define ext4_realloc realloc
-#define ext4_free    free
-
-#endif
-\end{lstlisting}
-
-我们希望让 NPUcore-IMPACT 为 lwext4 管理内存，为此我们实现 ext4_user_malloc、ext4_user_calloc、ext4_user_realloc、ext4_user_free 这四个内存管理函数，并将其与 lwext4 链接，从而让 lwext4 可以使用我们为它分配的内存，并在合适的时候回收这些内存。
-
-\begin{lstlisting}[language={Rust}, caption={NPUcore-IMPACT 为 lwext4 分配内存}]
-#[no_mangle]
-pub extern "C" fn ext4_user_malloc(size: ::core::ffi::c_size_t) -> *mut ::core::ffi::c_void {
-    HEAP_ALLOCATOR
-        .lock()
-        .alloc(Layout::array::<u8>(size).unwrap())
-        .unwrap()
-        .as_ptr() as *mut ::core::ffi::c_void
-}
-\end{lstlisting}
-
-为了便于调试，我们需要在 lwext4 执行时打印日志，得益于 Rust 与 C 跨语言互操作十分方便，我们直接在 Rust 侧编写了打印日志的工具函数。
-
-\begin{lstlisting}[language={Rust}, caption={在 lwext4 的 C 语言代码中打印日志}]
-#[no_mangle]
-pub extern "C" fn os_log(str: *const ::core::ffi::c_char) {
-    let str = unsafe { CStr::from_ptr(str) };
-    log::info!("{str:?}");
-}
-
-#[no_mangle]
-pub extern "C" fn os_var_log(name: *const ::core::ffi::c_char, value: ::core::ffi::c_int) {
-    let name = unsafe { CStr::from_ptr(name) };
-    log::info!("{name:?}: {value}");
-}
-\end{lstlisting}
-
-使用 \#[no_mangle] 可以让编译器不对函数名字进行混淆，使得我们可以在 C 语言侧直接调用 os_log 与 os_var_log 日志函数。

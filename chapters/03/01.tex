@@ -17,20 +17,18 @@
     |   |-- kern_stack.rs
     |   |-- la_libc_import.rs
     |   |-- laflex.rs
-    |   |-- load_img.S
     |   |-- mod.rs
     |   |-- register
     |   |   |-- base
+    |   |   |   |-- acpi.rs
     |   |   |   |-- badi.rs
     |   |   |   |-- badv.rs
-    |   |   |   |-- cpuid.rs
     |   |   |   |-- crmd.rs
     |   |   |   |-- ecfg.rs
     |   |   |   |-- eentry.rs
     |   |   |   |-- era.rs
     |   |   |   |-- estat.rs
     |   |   |   |-- euen.rs
-    |   |   |   |-- llbctl.rs
     |   |   |   |-- misc.rs
     |   |   |   |-- mod.rs
     |   |   |   |-- prcfg.rs
@@ -54,22 +52,16 @@
     |   |   |   |-- tlbrentry.rs
     |   |   |   |-- tlbrera.rs
     |   |   |   |-- tlbrprmd.rs
-    |   |   |   |-- tlbrsave.rs
     |   |   |-- mod.rs
     |   |   |-- ras
     |   |   |   |-- merrctl.rs
     |   |   |   |-- merrentry.rs
     |   |   |   |-- merrera.rs
-    |   |   |   |-- merrinfo.rs
-    |   |   |   |-- merrsave.rs
     |   |   |   |-- mod.rs
     |   |   |-- timer
-    |   |       |-- cntc.rs
     |   |       |-- mod.rs
     |   |       |-- tcfg.rs
     |   |       |-- ticlr.rs
-    |   |       |-- tid.rs
-    |   |       |-- tval.rs
     |   |-- sbi.rs
     |   |-- switch.S
     |   |-- switch.rs
@@ -81,8 +73,8 @@
     |       |-- mem_access.rs
     |       |-- mod.rs
     |       |-- trap.S
-    |-- mod.rs    
-
+    |-- mod.rs
+    
 \end{lstlisting}
 
 \section{LoongArch内存模块适配}
